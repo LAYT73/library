@@ -1,0 +1,316 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== Enum Types =====
+
+enum UserRole {
+  ADMIN
+  LIBRARIAN
+  DEPARTMENT_HEAD
+  VIEWER
+}
+
+enum CopyStatus {
+  AVAILABLE
+  ISSUED
+  WRITTEN_OFF
+  LOST
+}
+
+enum PurchaseRequestStatus {
+  CREATED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum OrderStatus {
+  CREATED
+  SENT
+  DELIVERED
+  CANCELLED
+}
+
+// ===== Users & Auth =====
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  fullName      String?
+  role          UserRole  @default(VIEWER)
+  department    String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  entity    String
+  entityId  String?
+  changes   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+// ===== Catalog =====
+
+model Author {
+  id        Int     @id @default(autoincrement())
+  fullName  String  @db.VarChar(150)
+  
+  books     Book[]
+
+  @@map("authors")
+}
+
+model KnowledgeArea {
+  id    Int     @id @default(autoincrement())
+  name  String  @db.VarChar(100)
+
+  books KnowledgeAreaBook[]
+
+  @@map("knowledge_areas")
+}
+
+model Book {
+  id        Int     @id @default(autoincrement())
+  isbn      String  @unique @db.VarChar(17)
+  title     String  @db.VarChar(200)
+  publisher String  @db.VarChar(300)
+  year      Int     @db.SmallInt
+  authorId  Int
+  
+  author               Author               @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  copies               Copy[]
+  knowledgeAreas       KnowledgeAreaBook[]
+  coverages            Coverage[]
+  purchaseRequestItems PurchaseRequestItem[]
+  donationItems        DonationItem[]
+  orderItems           OrderItem[]
+
+  @@map("books")
+}
+
+model KnowledgeAreaBook {
+  knowledgeAreaId Int
+  bookId          Int
+
+  knowledgeArea   KnowledgeArea @relation(fields: [knowledgeAreaId], references: [id], onDelete: Cascade)
+  book            Book          @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@id([knowledgeAreaId, bookId])
+  @@map("knowledge_area_books")
+}
+
+// ===== Inventory =====
+
+model Copy {
+  id                 Int     @id @default(autoincrement())
+  inventoryNumber    Int
+  status             CopyStatus @default(AVAILABLE)
+  bookId             Int
+  acquisitionId      Int?
+  
+  book               Book        @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  acquisition        Acquisition? @relation(fields: [acquisitionId], references: [id], onDelete: SetNull)
+  writeOffItems      WriteOffItem[]
+
+  @@unique([inventoryNumber])
+  @@map("copies")
+}
+
+model WriteOff {
+  id       Int    @id @default(autoincrement())
+  date     DateTime @default(now())
+  reason   String @db.VarChar(300)
+  
+  items    WriteOffItem[]
+
+  @@map("write_offs")
+}
+
+model WriteOffItem {
+  id         Int @id @default(autoincrement())
+  copyId     Int @unique
+  writeOffId Int
+  
+  copy       Copy      @relation(fields: [copyId], references: [id], onDelete: Cascade)
+  writeOff   WriteOff  @relation(fields: [writeOffId], references: [id], onDelete: Cascade)
+
+  @@map("write_off_items")
+}
+
+// ===== Procurement =====
+
+model Supplier {
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(180)
+  contactInfo String  @db.VarChar(400)
+  
+  orders      Order[]
+  acquisitions Acquisition[]
+
+  @@map("suppliers")
+}
+
+model PurchaseRequest {
+  id    Int    @id @default(autoincrement())
+  date  DateTime @default(now())
+  status PurchaseRequestStatus @default(CREATED)
+  createdAt DateTime @default(now())
+  
+  items      PurchaseRequestItem[]
+  orders     Order[]
+
+  @@map("purchase_requests")
+}
+
+model PurchaseRequestItem {
+  id                  Int @id @default(autoincrement())
+  quantity            Int
+  bookId              Int
+  purchaseRequestId   Int
+  
+  book               Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  purchaseRequest    PurchaseRequest   @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_request_items")
+}
+
+model Order {
+  id                  Int     @id @default(autoincrement())
+  orderDate           DateTime @default(now())
+  expectedDate        DateTime?
+  status              OrderStatus @default(CREATED)
+  supplierId          Int
+  purchaseRequestId   Int?
+  
+  supplier            Supplier         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  purchaseRequest     PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id], onDelete: SetNull)
+  items               OrderItem[]
+  acquisitions        Acquisition[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id      Int @id @default(autoincrement())
+  quantity Int
+  orderId Int
+  bookId  Int
+  
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  book    Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model Acquisition {
+  id         Int      @id @default(autoincrement())
+  date       DateTime @default(now())
+  totalCost  Decimal  @db.Decimal(10, 2)
+  supplierId Int
+  orderId    Int?
+  
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  copies     Copy[]
+
+  @@map("acquisitions")
+}
+
+// ===== Donations =====
+
+model Donation {
+  id       Int      @id @default(autoincrement())
+  donorName String  @db.VarChar(200)
+  date     DateTime @default(now())
+  
+  items    DonationItem[]
+
+  @@map("donations")
+}
+
+model DonationItem {
+  id        Int @id @default(autoincrement())
+  quantity  Int
+  donationId Int
+  bookId    Int
+  
+  donation  Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@map("donation_items")
+}
+
+// ===== Education =====
+
+model Discipline {
+  id        Int     @id @default(autoincrement())
+  name      String  @db.VarChar(200)
+  department String  @db.VarChar(300)
+  
+  assignments DisciplineAssignment[]
+  coverages   Coverage[]
+
+  @@map("disciplines")
+}
+
+model StudentGroup {
+  id           Int     @id @default(autoincrement())
+  name         String  @db.VarChar(40)
+  studentCount Int
+  
+  assignments  DisciplineAssignment[]
+
+  @@map("student_groups")
+}
+
+model DisciplineAssignment {
+  id             Int @id @default(autoincrement())
+  studentGroupId Int
+  disciplineId   Int
+  
+  studentGroup   StudentGroup @relation(fields: [studentGroupId], references: [id], onDelete: Cascade)
+  discipline     Discipline   @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+
+  @@unique([studentGroupId, disciplineId])
+  @@map("discipline_assignments")
+}
+
+// ===== Coverage =====
+
+model Coverage {
+  id            Int @id @default(autoincrement())
+  requiredCount Int
+  bookId        Int
+  disciplineId  Int
+  
+  book          Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  discipline    Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, disciplineId])
+  @@map("coverage")
+}
