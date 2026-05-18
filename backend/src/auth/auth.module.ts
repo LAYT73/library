@@ -15,7 +15,10 @@ import { PrismaService } from '../common/prisma.service';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: parseInt(configService.get<string>('JWT_EXPIRATION', '3600'), 10),
+          expiresIn: parseInt(
+            configService.get<string>('JWT_EXPIRATION', '3600'),
+            10,
+          ),
         },
       }),
     }),

@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Query, ParseIntPipe, DefaultValuePipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { BookService } from './book.service';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -17,13 +30,18 @@ export class BookController {
   @Post()
   @ApiOperation({ summary: 'Create book' })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  create(@Body() dto: CreateBookDto) {
-    return this.service.create(dto);
+  create(@Body() dto: CreateBookDto, @Request() req: { user?: { sub: string } }) {
+    return this.service.create(dto, req.user?.sub);
   }
 
   @Get()
   @ApiOperation({ summary: 'List books with pagination' })
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   findAll(
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
     @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
@@ -33,7 +51,12 @@ export class BookController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get book by id' })
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }
@@ -41,14 +64,18 @@ export class BookController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update book' })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateBookDto) {
-    return this.service.update(id, dto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateBookDto,
+    @Request() req: { user?: { sub: string } },
+  ) {
+    return this.service.update(id, dto, req.user?.sub);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete book' })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.service.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @Request() req: { user?: { sub: string } }) {
+    return this.service.remove(id, req.user?.sub);
   }
 }

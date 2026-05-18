@@ -28,7 +28,10 @@ export class AuthorService {
 
   async update(id: number, dto: UpdateAuthorDto) {
     await this.findOne(id);
-    return this.prisma.author.update({ where: { id }, data: { fullName: dto.fullName } });
+    return this.prisma.author.update({
+      where: { id },
+      data: { fullName: dto.fullName },
+    });
   }
 
   async remove(id: number) {

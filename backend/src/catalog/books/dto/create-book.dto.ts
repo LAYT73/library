@@ -1,4 +1,12 @@
-import { IsString, IsInt, IsOptional, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateBookDto {
   @IsString()
@@ -14,12 +22,17 @@ export class CreateBookDto {
   publisher: string;
 
   @IsInt()
+  @Min(1000)
+  @Type(() => Number)
   year: number;
 
   @IsInt()
+  @Type(() => Number)
   authorId: number;
 
   @IsOptional()
-  @IsString({ each: true })
-  knowledgeAreaIds?: string[];
+  @IsArray()
+  @IsInt({ each: true })
+  @Type(() => Number)
+  knowledgeAreaIds?: number[];
 }

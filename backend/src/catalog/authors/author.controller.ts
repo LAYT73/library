@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Query, ParseIntPipe, DefaultValuePipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthorService } from './author.service';
 import { CreateAuthorDto } from './dto/create-author.dto';
@@ -23,7 +35,12 @@ export class AuthorController {
 
   @Get()
   @ApiOperation({ summary: 'List authors with pagination' })
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   findAll(
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
     @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
@@ -33,7 +50,12 @@ export class AuthorController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get author by id' })
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }

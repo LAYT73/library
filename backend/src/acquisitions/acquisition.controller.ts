@@ -1,4 +1,16 @@
-import { Controller, Post, Param, UseGuards, Get, Query, ParseIntPipe, DefaultValuePipe, Patch, Delete, Body } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Param,
+  UseGuards,
+  Get,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+  Patch,
+  Delete,
+  Body,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AcquisitionService } from './acquisition.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -14,7 +26,9 @@ export class AcquisitionController {
   constructor(private service: AcquisitionService) {}
 
   @Post('from-order/:id')
-  @ApiOperation({ summary: 'Create acquisition from order id and create copies' })
+  @ApiOperation({
+    summary: 'Create acquisition from order id and create copies',
+  })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
   createFromOrder(@Param('id') id: number) {
     return this.service.createFromOrder(Number(id));
@@ -22,7 +36,12 @@ export class AcquisitionController {
 
   @Get()
   @ApiOperation({ summary: 'List acquisitions' })
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   findAll(
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
     @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
@@ -32,7 +51,12 @@ export class AcquisitionController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get acquisition by id' })
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }
@@ -40,7 +64,10 @@ export class AcquisitionController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update acquisition' })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateAcquisitionDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAcquisitionDto,
+  ) {
     return this.service.update(id, dto);
   }
 

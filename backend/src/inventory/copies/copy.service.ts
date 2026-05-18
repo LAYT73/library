@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { CopyStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
@@ -7,34 +11,65 @@ import { UpdateCopyDto } from './dto/update-copy.dto';
 
 @Injectable()
 export class CopyService {
-  constructor(private prisma: PrismaService, private audit: AuditService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+  ) {}
 
   private async nextInventoryNumber() {
-    const max = await this.prisma.copy.aggregate({ _max: { inventoryNumber: true } });
+    const max = await this.prisma.copy.aggregate({
+      _max: { inventoryNumber: true },
+    });
     return (max._max.inventoryNumber ?? 1000) + 1;
   }
 
   async create(dto: CreateCopyDto) {
-    const inventoryNumber = await this.nextInventoryNumber();
+    const inventoryNumber =
+      dto.inventoryNumber ?? (await this.nextInventoryNumber());
     try {
-      const created = await this.prisma.copy.create({ data: { inventoryNumber, status: CopyStatus.AVAILABLE, bookId: dto.bookId, acquisitionId: dto.acquisitionId } });
-      await this.audit.log({ action: 'create', entity: 'Copy', entityId: created.id });
+      const created = await this.prisma.copy.create({
+        data: {
+          inventoryNumber,
+          status: CopyStatus.AVAILABLE,
+          bookId: dto.bookId,
+          acquisitionId: dto.acquisitionId,
+        },
+      });
+      await this.audit.log({
+        action: 'create',
+        entity: 'Copy',
+        entityId: created.id,
+      });
       return created;
     } catch (e) {
+      // if unique constraint on inventoryNumber fails, Prisma will throw; return meaningful message
       throw new BadRequestException('Failed to create copy');
     }
   }
 
   async findAll(skip = 0, take = 25) {
     const [data, total] = await Promise.all([
-      this.prisma.copy.findMany({ skip, take, include: { book: true, acquisition: true } }),
+      this.prisma.copy.findMany({
+        skip,
+        take,
+        include: {
+          book: { include: { author: true } },
+          acquisition: { include: { supplier: true } },
+        },
+      }),
       this.prisma.copy.count(),
     ]);
     return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
   }
 
   async findOne(id: number) {
-    const item = await this.prisma.copy.findUnique({ where: { id }, include: { book: true, acquisition: true } });
+    const item = await this.prisma.copy.findUnique({
+      where: { id },
+      include: {
+        book: { include: { author: true } },
+        acquisition: { include: { supplier: true } },
+      },
+    });
     if (!item) throw new NotFoundException('Copy not found');
     return item;
   }
@@ -46,8 +81,16 @@ export class CopyService {
 
   async changeStatus(id: number, status: CopyStatus) {
     await this.findOne(id);
-    const updated = await this.prisma.copy.update({ where: { id }, data: { status } });
-    await this.audit.log({ action: 'update_status', entity: 'Copy', entityId: updated.id, changes: { status } });
+    const updated = await this.prisma.copy.update({
+      where: { id },
+      data: { status },
+    });
+    await this.audit.log({
+      action: 'update_status',
+      entity: 'Copy',
+      entityId: updated.id,
+      changes: { status },
+    });
     return updated;
   }
 

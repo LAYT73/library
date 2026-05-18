@@ -19,6 +19,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: { enableImplicitConversion: true },
     }),
   );
 
@@ -28,7 +29,9 @@ async function bootstrap() {
   // Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('Library Management System')
-    .setDescription('REST API for library management and book coverage tracking')
+    .setDescription(
+      'REST API for library management and book coverage tracking',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();

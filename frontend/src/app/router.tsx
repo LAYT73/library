@@ -5,6 +5,7 @@ import { LoginPage } from '../pages/login/LoginPage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { CatalogPage } from '../pages/catalog/CatalogPage';
 import { AuthorsPage } from '../pages/catalog/AuthorsPage';
+import { KnowledgeAreasPage } from '../pages/catalog/KnowledgeAreasPage';
 import { AppPage } from '../pages/app/AppPage';
 import { BookDetailsPage } from '../pages/catalog/BookDetailsPage';
 import { ProtectedRoute } from '../shared/lib/ProtectedRoute';
@@ -20,12 +21,14 @@ import { WriteOffsPage } from '../pages/writeoffs/WriteOffsPage';
 import { CoveragePage } from '../pages/coverage/CoveragePage';
 import { ReportsPage } from '../pages/reports/ReportsPage';
 import { UsersPage } from '../pages/users/UsersPage';
+import { EducationPage } from '../pages/education/EducationPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       retry: 1,
+      refetchOnWindowFocus: false,
     },
   },
 });
@@ -68,6 +71,14 @@ export function RootRouter() {
                 element={
                   <ProtectedRoute>
                     <AuthorsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/knowledge-areas"
+                element={
+                  <ProtectedRoute>
+                    <KnowledgeAreasPage />
                   </ProtectedRoute>
                 }
               />
@@ -145,6 +156,15 @@ export function RootRouter() {
               element={
                 <ProtectedRoute>
                   <WriteOffsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/education"
+              element={
+                <ProtectedRoute>
+                  <EducationPage />
                 </ProtectedRoute>
               }
             />

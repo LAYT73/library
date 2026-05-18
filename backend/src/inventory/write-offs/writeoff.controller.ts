@@ -1,4 +1,16 @@
-import { Controller, Post, Body, UseGuards, Get, Param, Patch, Delete, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Param,
+  Patch,
+  Delete,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { WriteOffService } from './writeoff.service';
 import { CreateWriteOffDto } from './dto/create-writeoff.dto';
@@ -23,7 +35,12 @@ export class WriteOffController {
 
   @Get()
   @ApiOperation({ summary: 'List write-offs' })
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   findAll(
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
     @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
@@ -33,7 +50,12 @@ export class WriteOffController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get write-off by id' })
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }
@@ -41,7 +63,10 @@ export class WriteOffController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update write-off' })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateWriteOffDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateWriteOffDto,
+  ) {
     return this.service.update(id, dto);
   }
 

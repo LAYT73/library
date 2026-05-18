@@ -1,4 +1,11 @@
-import { IsOptional, IsString, MaxLength, IsArray, ArrayNotEmpty, IsInt } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  MaxLength,
+  IsArray,
+  ArrayNotEmpty,
+  IsInt,
+} from 'class-validator';
 
 export class UpdateWriteOffDto {
   @IsOptional()

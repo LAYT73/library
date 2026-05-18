@@ -6,26 +6,48 @@ import { UpdateAcquisitionDto } from './dto/update-acquisition.dto';
 
 @Injectable()
 export class AcquisitionService {
-  constructor(private prisma: PrismaService, private audit: AuditService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+  ) {}
 
   async createFromOrder(orderId: number) {
     return this.prisma.$transaction(async (tx) => {
-      const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: { items: true },
+      });
       if (!order) throw new NotFoundException('Order not found');
 
-      const acquisition = await tx.acquisition.create({ data: { supplierId: order.supplierId, orderId: order.id, totalCost: 0 } });
+      const acquisition = await tx.acquisition.create({
+        data: { supplierId: order.supplierId, orderId: order.id, totalCost: 0 },
+      });
 
       // create copies for each order item
       for (const item of order.items) {
         for (let i = 0; i < item.quantity; i++) {
           // generate inventory number
-          const max = await tx.copy.aggregate({ _max: { inventoryNumber: true } });
+          const max = await tx.copy.aggregate({
+            _max: { inventoryNumber: true },
+          });
           const inventoryNumber = (max._max.inventoryNumber ?? 1000) + 1;
-          await tx.copy.create({ data: { inventoryNumber, status: CopyStatus.AVAILABLE, bookId: item.bookId, acquisitionId: acquisition.id } });
+          await tx.copy.create({
+            data: {
+              inventoryNumber,
+              status: CopyStatus.AVAILABLE,
+              bookId: item.bookId,
+              acquisitionId: acquisition.id,
+            },
+          });
         }
       }
 
-      await this.audit.log({ action: 'create', entity: 'Acquisition', entityId: acquisition.id, changes: { orderId: order.id } });
+      await this.audit.log({
+        action: 'create',
+        entity: 'Acquisition',
+        entityId: acquisition.id,
+        changes: { orderId: order.id },
+      });
       return acquisition;
     });
   }
@@ -36,7 +58,11 @@ export class AcquisitionService {
         skip,
         take,
         orderBy: { date: 'desc' },
-        include: { supplier: true, order: true, copies: true },
+        include: {
+          supplier: true,
+          order: true,
+          copies: { include: { book: { include: { author: true } } } },
+        },
       }),
       this.prisma.acquisition.count(),
     ]);
@@ -62,17 +88,32 @@ export class AcquisitionService {
         orderId: dto.orderId ?? undefined,
       },
     });
-    await this.audit.log({ action: 'update', entity: 'Acquisition', entityId: id, changes: dto });
+    await this.audit.log({
+      action: 'update',
+      entity: 'Acquisition',
+      entityId: id,
+      changes: dto,
+    });
     return updated;
   }
 
   async remove(id: number) {
     return this.prisma.$transaction(async (tx) => {
-      const acquisition = await tx.acquisition.findUnique({ where: { id }, include: { copies: true } });
+      const acquisition = await tx.acquisition.findUnique({
+        where: { id },
+        include: { copies: true },
+      });
       if (!acquisition) throw new NotFoundException('Acquisition not found');
-      await tx.copy.updateMany({ where: { acquisitionId: id }, data: { acquisitionId: null } });
+      await tx.copy.updateMany({
+        where: { acquisitionId: id },
+        data: { acquisitionId: null },
+      });
       const deleted = await tx.acquisition.delete({ where: { id } });
-      await this.audit.log({ action: 'delete', entity: 'Acquisition', entityId: id });
+      await this.audit.log({
+        action: 'delete',
+        entity: 'Acquisition',
+        entityId: id,
+      });
       return deleted;
     });
   }

@@ -1,4 +1,16 @@
-import { Controller, Post, Body, Get, Query, ParseIntPipe, DefaultValuePipe, Param, Patch, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+  Param,
+  Patch,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { SupplierService } from './supplier.service';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
@@ -37,7 +49,10 @@ export class SupplierController {
 
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: Partial<CreateSupplierDto>) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: Partial<CreateSupplierDto>,
+  ) {
     return this.service.update(id, dto);
   }
 

@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Query, ParseIntPipe, DefaultValuePipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -18,7 +30,7 @@ export class UserController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create user (admin only)' })
   create(@Body() dto: CreateUserDto) {
-    return this.service.create(dto as any);
+    return this.service.create(dto);
   }
 
   @Get()

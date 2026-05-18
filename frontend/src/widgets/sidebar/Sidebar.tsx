@@ -38,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
       children: [
         { key: 'books', label: 'Книги', onClick: () => navigate('/catalog') },
         { key: 'authors', label: 'Авторы', onClick: () => navigate('/authors') },
+        { key: 'knowledge-areas', label: 'Области знаний', onClick: () => navigate('/knowledge-areas') },
       ],
     },
     {
@@ -76,8 +77,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
       disabled: !hasRole([UserRole.ADMIN, UserRole.LIBRARIAN]),
     },
     {
-      key: 'coverage',
+      key: 'education',
       icon: <FileSearchOutlined />,
+      label: 'Учебный процесс',
+      onClick: () => navigate('/education'),
+    },
+    {
+      key: 'coverage',
+      icon: <BarChartOutlined />,
       label: 'Книгообеспеченность',
       onClick: () => navigate('/coverage'),
     },

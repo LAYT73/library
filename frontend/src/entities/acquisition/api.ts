@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
+import type { Book, Supplier } from '../../shared/types';
+
+export interface AcquisitionCopy {
+  id: number;
+  inventoryNumber: number;
+  book?: Book;
+}
 
 export interface AcquisitionItem {
   id: number;
@@ -7,6 +14,9 @@ export interface AcquisitionItem {
   totalCost: string;
   supplierId: number;
   orderId?: number | null;
+  supplier?: Supplier;
+  order?: { id: number; status: string; orderDate?: string };
+  copies?: AcquisitionCopy[];
 }
 
 export interface PaginatedAcquisitionResponse {
@@ -60,4 +70,3 @@ export const useDeleteAcquisition = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['acquisitions'] }),
   });
 };
-

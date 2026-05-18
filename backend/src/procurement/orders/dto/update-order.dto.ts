@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsOptional } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsOptional } from 'class-validator';
 import { OrderStatus } from '@prisma/client';
 
 export class UpdateOrderDto {
@@ -13,4 +13,8 @@ export class UpdateOrderDto {
   @IsOptional()
   @IsInt()
   purchaseRequestId?: number | null;
+
+  @IsOptional()
+  @IsDateString()
+  expectedDate?: string | null;
 }

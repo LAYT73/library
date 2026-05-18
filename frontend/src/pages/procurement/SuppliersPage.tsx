@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
-import { Spin, Empty, Button, Modal, Form, Input, Pagination, Table, Space, Popconfirm, message } from 'antd';
+import { Spin, Empty, Button, Modal, Form, Input, Table, Space, Popconfirm, message } from 'antd';
+import { getServerPagination } from '../../shared/lib/pagination';
 import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier } from '../../entities/supplier/api';
 
 export const SuppliersPage: React.FC = () => {
@@ -15,11 +16,15 @@ export const SuppliersPage: React.FC = () => {
   const [form] = Form.useForm();
 
   const submitCreate = async () => {
-    const values = await form.validateFields();
-    await create.mutateAsync({ name: values.name, contactInfo: values.contactInfo });
-    message.success('Поставщик создан');
-    form.resetFields();
-    setCreateOpen(false);
+    try {
+      const values = await form.validateFields();
+      await create.mutateAsync({ name: values.name, contactInfo: values.contactInfo });
+      message.success('Поставщик создан');
+      form.resetFields();
+      setCreateOpen(false);
+    } catch (e) {
+      message.error('Не удалось создать поставщика');
+    }
   };
 
   const openEdit = (record: { id: number; name: string; contactInfo: string }) => {
@@ -30,12 +35,16 @@ export const SuppliersPage: React.FC = () => {
 
   const submitEdit = async () => {
     if (!editingId) return;
-    const values = await form.validateFields();
-    await update.mutateAsync({ id: editingId, payload: { name: values.name, contactInfo: values.contactInfo } });
-    message.success('Поставщик обновлён');
-    form.resetFields();
-    setEditingId(null);
-    setEditOpen(false);
+    try {
+      const values = await form.validateFields();
+      await update.mutateAsync({ id: editingId, payload: { name: values.name, contactInfo: values.contactInfo } });
+      message.success('Поставщик обновлён');
+      form.resetFields();
+      setEditingId(null);
+      setEditOpen(false);
+    } catch (e) {
+      message.error('Не удалось обновить поставщика');
+    }
   };
 
   if (isLoading) {
@@ -63,6 +72,7 @@ export const SuppliersPage: React.FC = () => {
       <Table
         rowKey="id"
         dataSource={data.data}
+        pagination={getServerPagination(data, setSkip)}
         columns={[
           { title: 'Название', dataIndex: 'name', key: 'name' },
           { title: 'Контакты', dataIndex: 'contactInfo', key: 'contactInfo' },
@@ -72,7 +82,7 @@ export const SuppliersPage: React.FC = () => {
             render: (_value, record) => (
               <Space>
                 <Button size="small" onClick={() => openEdit(record)}>Изменить</Button>
-                <Popconfirm title="Удалить поставщика?" onConfirm={async () => { await remove.mutateAsync(record.id); message.success('Поставщик удалён'); }}>
+                <Popconfirm title="Удалить поставщика?" onConfirm={async () => { try { await remove.mutateAsync(record.id); message.success('Поставщик удалён'); } catch { message.error('Не удалось удалить поставщика'); } }}>
                   <Button danger size="small">Удалить</Button>
                 </Popconfirm>
               </Space>
@@ -81,32 +91,24 @@ export const SuppliersPage: React.FC = () => {
         ]}
       />
 
-      <Pagination
-        current={data.page}
-        total={data.total}
-        pageSize={data.pageSize}
-        onChange={(page) => setSkip((page - 1) * data.pageSize)}
-        style={{ marginTop: 16, textAlign: 'right' }}
-      />
-
       <Modal title="Создать поставщика" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={submitCreate} okText="Создать" cancelText="Отмена">
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Название" rules={[{ required: true }]}>
-            <Input />
+          <Form.Item name="name" label="Название" rules={[{ required: true }, { max: 180, message: 'Не более 180 символов' }] }>
+            <Input placeholder="Название организации или ИП" />
           </Form.Item>
-          <Form.Item name="contactInfo" label="Контактная информация" rules={[{ required: true }]}>
-            <Input.TextArea />
+          <Form.Item name="contactInfo" label="Контактная информация" rules={[{ required: true }, { max: 400, message: 'Не более 400 символов' }] }>
+            <Input.TextArea placeholder="Адрес, телефон, email, реквизиты" />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal title="Изменить поставщика" open={editOpen} onCancel={() => setEditOpen(false)} onOk={submitEdit} okText="Сохранить" cancelText="Отмена">
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Название" rules={[{ required: true }]}>
-            <Input />
+          <Form.Item name="name" label="Название" rules={[{ required: true }, { max: 180, message: 'Не более 180 символов' }] }>
+            <Input placeholder="Название организации или ИП" />
           </Form.Item>
-          <Form.Item name="contactInfo" label="Контактная информация" rules={[{ required: true }]}>
-            <Input.TextArea />
+          <Form.Item name="contactInfo" label="Контактная информация" rules={[{ required: true }, { max: 400, message: 'Не более 400 символов' }] }>
+            <Input.TextArea placeholder="Адрес, телефон, email, реквизиты" />
           </Form.Item>
         </Form>
       </Modal>

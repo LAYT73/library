@@ -13,7 +13,11 @@ export class StudentGroupService {
 
   async findAll(skip = 0, take = 25) {
     const [data, total] = await Promise.all([
-      this.prisma.studentGroup.findMany({ skip, take, orderBy: { name: 'asc' } }),
+      this.prisma.studentGroup.findMany({
+        skip,
+        take,
+        orderBy: { name: 'asc' },
+      }),
       this.prisma.studentGroup.count(),
     ]);
 

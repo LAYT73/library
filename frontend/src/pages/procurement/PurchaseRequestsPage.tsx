@@ -1,8 +1,12 @@
 import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
-import { Button, Modal, Form, InputNumber, Table, Space, Pagination, Spin, Empty, Popconfirm, message, Select } from 'antd';
+import { Button, Modal, Form, InputNumber, Table, Space, Spin, Empty, Popconfirm, message, Select, Tag } from 'antd';
+import { getServerPagination } from '../../shared/lib/pagination';
 import { usePurchaseRequests, useCreatePurchaseRequest, useUpdatePurchaseRequest, useDeletePurchaseRequest } from '../../entities/purchaseRequest/api';
+import { useSuppliers } from '../../entities/supplier/api';
+import { useCreateOrderFromRequest } from '../../entities/order/api';
 import { useBooks } from '../../shared/hooks/useBooks';
+import { formatDateTimeRu, formatPurchaseRequestStatus } from '../../shared/lib/formatters';
 
 export const PurchaseRequestsPage: React.FC = () => {
   const [skip, setSkip] = React.useState(0);
@@ -15,13 +19,22 @@ export const PurchaseRequestsPage: React.FC = () => {
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [form] = Form.useForm();
   const { data: booksData } = useBooks(0, 1000);
+  const { data: suppliersData } = useSuppliers(0, 1000);
+  const createOrder = useCreateOrderFromRequest();
+  const [orderModalOpen, setOrderModalOpen] = React.useState(false);
+  const [orderPrId, setOrderPrId] = React.useState<number | null>(null);
+  const [orderForm] = Form.useForm();
 
   const submitCreate = async () => {
-    const values = await form.validateFields();
-    await create.mutateAsync({ items: [{ bookId: Number(values.bookId), quantity: Number(values.quantity) }] });
-    message.success('Заявка создана');
-    form.resetFields();
-    setCreateOpen(false);
+    try {
+      const values = await form.validateFields();
+      await create.mutateAsync({ items: [{ bookId: Number(values.bookId), quantity: Number(values.quantity) }] });
+      message.success('Заявка создана');
+      form.resetFields();
+      setCreateOpen(false);
+    } catch (e) {
+      message.error('Не удалось создать заявку');
+    }
   };
 
   const openEdit = (record: { id: number; status: string }) => {
@@ -32,12 +45,16 @@ export const PurchaseRequestsPage: React.FC = () => {
 
   const submitEdit = async () => {
     if (!editingId) return;
-    const values = await form.validateFields();
-    await update.mutateAsync({ id: editingId, payload: { status: values.status } });
-    message.success('Заявка обновлена');
-    form.resetFields();
-    setEditingId(null);
-    setEditOpen(false);
+    try {
+      const values = await form.validateFields();
+      await update.mutateAsync({ id: editingId, payload: { status: values.status } });
+      message.success('Заявка обновлена');
+      form.resetFields();
+      setEditingId(null);
+      setEditOpen(false);
+    } catch (e) {
+      message.error('Не удалось обновить заявку');
+    }
   };
 
   if (isLoading) return <AppLayout><Spin size="large" /></AppLayout>;
@@ -52,17 +69,33 @@ export const PurchaseRequestsPage: React.FC = () => {
       <Table
         rowKey="id"
         dataSource={data.data}
+        pagination={getServerPagination(data, setSkip)}
         columns={[
-          { title: 'ID', dataIndex: 'id', key: 'id' },
-          { title: 'Дата', dataIndex: 'date', key: 'date' },
-          { title: 'Статус', dataIndex: 'status', key: 'status' },
+          { title: '№', dataIndex: 'id', key: 'id', width: 70 },
+          {
+            title: 'Дата',
+            dataIndex: 'date',
+            key: 'date',
+            render: (v: string) => formatDateTimeRu(v),
+          },
+          {
+            title: 'Статус',
+            dataIndex: 'status',
+            key: 'status',
+            render: (v: string) => {
+              const color =
+                v === 'APPROVED' ? 'green' : v === 'REJECTED' ? 'red' : v === 'COMPLETED' ? 'blue' : 'default';
+              return <Tag color={color}>{formatPurchaseRequestStatus(v)}</Tag>;
+            },
+          },
           {
             title: 'Действия',
             key: 'actions',
             render: (_value, record) => (
               <Space>
                 <Button size="small" onClick={() => openEdit(record)}>Изменить статус</Button>
-                <Popconfirm title="Удалить заявку?" onConfirm={async () => { await remove.mutateAsync(record.id); message.success('Заявка удалена'); }}>
+                        <Button size="small" onClick={() => { setOrderPrId(record.id); setOrderModalOpen(true); }}>Создать заказ</Button>
+                <Popconfirm title="Удалить заявку?" onConfirm={async () => { try { await remove.mutateAsync(record.id); message.success('Заявка удалена'); } catch { message.error('Не удалось удалить заявку'); } }}>
                   <Button danger size="small">Удалить</Button>
                 </Popconfirm>
               </Space>
@@ -70,8 +103,6 @@ export const PurchaseRequestsPage: React.FC = () => {
           },
         ]}
       />
-
-      <Pagination current={data.page} total={data.total} pageSize={data.pageSize} onChange={(page) => setSkip((page - 1) * data.pageSize)} style={{ marginTop: 16, textAlign: 'right' }} />
 
       <Modal title="Создать заявку на закупку" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={submitCreate} okText="Создать" cancelText="Отмена">
         <Form form={form} layout="vertical">
@@ -82,6 +113,27 @@ export const PurchaseRequestsPage: React.FC = () => {
           </Form.Item>
           <Form.Item name="quantity" label="Количество" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} placeholder="Например: 3" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal title="Создать заказ по заявке" open={orderModalOpen} onCancel={() => { setOrderModalOpen(false); setOrderPrId(null); }} onOk={async () => {
+        try {
+          const vals = await orderForm.validateFields();
+          if (!orderPrId) return;
+          await createOrder.mutateAsync({ requestId: orderPrId, supplierId: vals.supplierId });
+          message.success('Заказ создан');
+          setOrderModalOpen(false);
+          setOrderPrId(null);
+        } catch (e) {
+          message.error('Не удалось создать заказ');
+        }
+      }}>
+        <Form form={orderForm} layout="vertical">
+          <Form.Item name="supplierId" label="Поставщик" rules={[{ required: true }]}>
+            <Select placeholder="Выберите поставщика">
+              {suppliersData?.data?.map((s: any) => (<Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>))}
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

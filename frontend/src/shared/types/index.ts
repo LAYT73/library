@@ -65,7 +65,13 @@ export interface Copy {
   inventoryNumber: number;
   status: CopyStatusType;
   bookId: number;
-  acquisitionId?: number;
+  acquisitionId?: number | null;
+  book?: Book;
+  acquisition?: {
+    id: number;
+    date: string;
+    supplier?: { id: number; name: string };
+  };
 }
 
 export const CopyStatus = {

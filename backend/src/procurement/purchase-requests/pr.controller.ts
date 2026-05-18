@@ -1,4 +1,16 @@
-import { Controller, Post, Body, Param, Get, UseGuards, Patch, Delete, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  Get,
+  UseGuards,
+  Patch,
+  Delete,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PurchaseRequestService } from './pr.service';
 import { CreatePurchaseRequestDto } from './dto/create-pr.dto';
@@ -41,7 +53,10 @@ export class PurchaseRequestController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update purchase request' })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePurchaseRequestDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdatePurchaseRequestDto,
+  ) {
     return this.service.update(id, dto);
   }
 

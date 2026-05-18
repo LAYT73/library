@@ -13,10 +13,19 @@ interface AuthStore {
   hasPermission: (permission: string) => boolean;
 }
 
+const storedUserRaw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+const storedToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+let initialUser: User | null = null;
+try {
+  if (storedUserRaw) initialUser = JSON.parse(storedUserRaw);
+} catch {
+  initialUser = null;
+}
+
 export const useAuthStore = create<AuthStore>((set, get) => ({
-  user: null,
-  token: null,
-  isAuthenticated: false,
+  user: initialUser,
+  token: storedToken,
+  isAuthenticated: !!initialUser,
 
   login: (user: User) => {
     localStorage.setItem('accessToken', user.accessToken);
@@ -31,7 +40,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   setUser: (user: User) => {
-    set({ user });
+    // keep localStorage in sync when user is set programmatically
+    try {
+      localStorage.setItem('user', JSON.stringify(user));
+    } catch {}
+    set({ user, isAuthenticated: !!user, token: (user as any)?.accessToken ?? get().token });
   },
 
   hasRole: (roles: UserRoleType | UserRoleType[]) => {

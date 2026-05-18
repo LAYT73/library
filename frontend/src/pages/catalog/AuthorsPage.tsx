@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
-import { Spin, Empty, Button, Modal, Form, Input, Pagination } from 'antd';
+import { Spin, Empty, Button, Modal, Form, Input, message } from 'antd';
+import { getServerPagination } from '../../shared/lib/pagination';
 import { useAuthors, useCreateAuthor } from '../../entities/author/api';
 import { AuthorTable } from '../../entities/author/AuthorTable';
 
@@ -29,21 +30,23 @@ export const AuthorsPage: React.FC = () => {
         <Button type="primary" onClick={() => setOpen(true)}>Добавить автора</Button>
       </div>
 
-      <AuthorTable authors={data.data} loading={isLoading} onRowClick={() => {}} />
-
-      <Pagination
-        current={data.page}
-        total={data.total}
-        pageSize={data.pageSize}
-        onChange={(page) => setSkip((page - 1) * data.pageSize)}
-        style={{ marginTop: 16, textAlign: 'right' }}
+      <AuthorTable
+        authors={data.data}
+        loading={isLoading}
+        onRowClick={() => {}}
+        pagination={getServerPagination(data, setSkip)}
       />
 
       <Modal title="Создать автора" open={open} onCancel={() => setOpen(false)} onOk={async () => {
-        const values = await form.validateFields();
-        await create.mutateAsync({ fullName: values.fullName });
-        form.resetFields();
-        setOpen(false);
+        try {
+          const values = await form.validateFields();
+          await create.mutateAsync({ fullName: values.fullName });
+          message.success('Автор создан');
+          form.resetFields();
+          setOpen(false);
+        } catch (e) {
+          message.error('Не удалось создать автора');
+        }
       }}>
         <Form form={form} layout="vertical">
           <Form.Item name="fullName" label="ФИО" rules={[{ required: true }]}>

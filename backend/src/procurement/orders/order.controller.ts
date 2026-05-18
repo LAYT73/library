@@ -1,4 +1,16 @@
-import { Controller, Post, Body, Param, UseGuards, Get, Patch, Delete, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Get,
+  Patch,
+  Delete,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { OrderService } from './order.service';
 import { CreateOrderFromRequestDto } from './dto/create-order.dto';
@@ -17,7 +29,10 @@ export class OrderController {
   @Post('from-request/:id')
   @ApiOperation({ summary: 'Create order from purchase request id' })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  createFromRequest(@Param('id') id: number, @Body() dto: CreateOrderFromRequestDto) {
+  createFromRequest(
+    @Param('id') id: number,
+    @Body() dto: CreateOrderFromRequestDto,
+  ) {
     return this.service.createFromRequest(Number(id), dto);
   }
 

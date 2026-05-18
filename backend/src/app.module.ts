@@ -12,6 +12,7 @@ import { PurchaseRequestModule } from './procurement/purchase-requests/pr.module
 import { OrderModule } from './procurement/orders/order.module';
 import { AcquisitionModule } from './acquisitions/acquisition.module';
 import { DonationModule } from './donations/donation.module';
+import { KnowledgeAreaModule } from './catalog/knowledge-areas/knowledge-area.module';
 import { CoverageModule } from './coverage/coverage.module';
 import { UserModule } from './users/user.module';
 import { EducationModule } from './education/discipline.module';
@@ -35,6 +36,7 @@ import { ReportingModule } from './reporting/reporting.module';
     OrderModule,
     AcquisitionModule,
     DonationModule,
+    KnowledgeAreaModule,
     CoverageModule,
     UserModule,
     EducationModule,

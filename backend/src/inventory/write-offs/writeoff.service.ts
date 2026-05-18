@@ -8,18 +8,33 @@ import { UpdateWriteOffDto } from './dto/update-writeoff.dto';
 
 @Injectable()
 export class WriteOffService {
-  constructor(private prisma: PrismaService, private audit: AuditService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+  ) {}
 
   async create(dto: CreateWriteOffDto) {
     return this.prisma.$transaction(async (tx) => {
-      const writeOff = await tx.writeOff.create({ data: { reason: dto.reason } });
+      const writeOff = await tx.writeOff.create({
+        data: { reason: dto.reason },
+      });
 
       for (const copyId of dto.copyIds) {
-        await tx.writeOffItem.create({ data: { copyId, writeOffId: writeOff.id } });
-        await tx.copy.update({ where: { id: copyId }, data: { status: CopyStatus.WRITTEN_OFF } });
+        await tx.writeOffItem.create({
+          data: { copyId, writeOffId: writeOff.id },
+        });
+        await tx.copy.update({
+          where: { id: copyId },
+          data: { status: CopyStatus.WRITTEN_OFF },
+        });
       }
 
-      await this.audit.log({ action: 'create', entity: 'WriteOff', entityId: writeOff.id, changes: { copyIds: dto.copyIds } });
+      await this.audit.log({
+        action: 'create',
+        entity: 'WriteOff',
+        entityId: writeOff.id,
+        changes: { copyIds: dto.copyIds },
+      });
       return writeOff;
     });
   }
@@ -30,7 +45,13 @@ export class WriteOffService {
         skip,
         take,
         orderBy: { date: 'desc' },
-        include: { items: { include: { copy: true } } },
+        include: {
+          items: {
+            include: {
+              copy: { include: { book: { include: { author: true } } } },
+            },
+          },
+        },
       }),
       this.prisma.writeOff.count(),
     ]);
@@ -39,7 +60,10 @@ export class WriteOffService {
   }
 
   async findOne(id: number) {
-    const writeOff = await this.prisma.writeOff.findUnique({ where: { id }, include: { items: { include: { copy: true } } } });
+    const writeOff = await this.prisma.writeOff.findUnique({
+      where: { id },
+      include: { items: { include: { copy: true } } },
+    });
     if (!writeOff) throw new NotFoundException('WriteOff not found');
     return writeOff;
   }
@@ -56,24 +80,48 @@ export class WriteOffService {
         await tx.writeOffItem.deleteMany({ where: { writeOffId: id } });
         for (const copyId of dto.copyIds) {
           await tx.writeOffItem.create({ data: { copyId, writeOffId: id } });
-          await tx.copy.update({ where: { id: copyId }, data: { status: CopyStatus.WRITTEN_OFF } });
+          await tx.copy.update({
+            where: { id: copyId },
+            data: { status: CopyStatus.WRITTEN_OFF },
+          });
         }
       }
 
-      return tx.writeOff.findUnique({ where: { id }, include: { items: { include: { copy: true } } } });
+      return tx.writeOff.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              copy: { include: { book: { include: { author: true } } } },
+            },
+          },
+        },
+      });
     });
 
-    await this.audit.log({ action: 'update', entity: 'WriteOff', entityId: id, changes: dto });
+    await this.audit.log({
+      action: 'update',
+      entity: 'WriteOff',
+      entityId: id,
+      changes: dto,
+    });
     return updated ?? existing;
   }
 
   async remove(id: number) {
     return this.prisma.$transaction(async (tx) => {
-      const writeOff = await tx.writeOff.findUnique({ where: { id }, include: { items: true } });
+      const writeOff = await tx.writeOff.findUnique({
+        where: { id },
+        include: { items: true },
+      });
       if (!writeOff) throw new NotFoundException('WriteOff not found');
       await tx.writeOffItem.deleteMany({ where: { writeOffId: id } });
       const deleted = await tx.writeOff.delete({ where: { id } });
-      await this.audit.log({ action: 'delete', entity: 'WriteOff', entityId: id });
+      await this.audit.log({
+        action: 'delete',
+        entity: 'WriteOff',
+        entityId: id,
+      });
       return deleted;
     });
   }

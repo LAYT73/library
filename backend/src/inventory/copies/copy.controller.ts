@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, Query, ParseIntPipe, DefaultValuePipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { CopyService } from './copy.service';
 import { CreateCopyDto } from './dto/create-copy.dto';
@@ -23,7 +35,12 @@ export class CopyController {
 
   @Get()
   @ApiOperation({ summary: 'List copies' })
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   findAll(
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
     @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
@@ -33,7 +50,12 @@ export class CopyController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get copy by id' })
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }
@@ -48,7 +70,10 @@ export class CopyController {
   @Patch(':id/status')
   @ApiOperation({ summary: 'Change status' })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  changeStatus(@Param('id', ParseIntPipe) id: number, @Body('status') status: string) {
+  changeStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status') status: string,
+  ) {
     // cast incoming string to enum value
     return this.service.changeStatus(id, status as any);
   }

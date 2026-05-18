@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { IsString, IsArray, ArrayNotEmpty, IsInt } from 'class-validator';
 
 export class CreateWriteOffDto {
@@ -6,6 +7,7 @@ export class CreateWriteOffDto {
 
   @IsArray()
   @ArrayNotEmpty()
-  // array of copy ids
+  @IsInt({ each: true })
+  @Type(() => Number)
   copyIds: number[];
 }

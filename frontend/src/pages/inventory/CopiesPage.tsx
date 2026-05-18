@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
-import { Spin, Empty, Button, Modal, Form, InputNumber, Pagination, message, Select } from 'antd';
+import { Spin, Empty, Button, Modal, Form, InputNumber, message, Select } from 'antd';
+import { getServerPagination } from '../../shared/lib/pagination';
 import { useCopies, useCreateCopy, useChangeCopyStatus } from '../../entities/copy/api';
 import { useBooks } from '../../shared/hooks/useBooks';
 import { CopyTable } from '../../entities/copy/CopyTable';
@@ -43,21 +44,25 @@ export const CopiesPage: React.FC = () => {
         <Button type="primary" onClick={() => setOpen(true)}>Добавить экземпляр</Button>
       </div>
 
-      <CopyTable copies={data.data} loading={isLoading} onChangeStatus={handleChangeStatus} onRowClick={() => {}} />
-
-      <Pagination
-        current={data.page}
-        total={data.total}
-        pageSize={data.pageSize}
-        onChange={(page) => setSkip((page - 1) * data.pageSize)}
-        style={{ marginTop: 16, textAlign: 'right' }}
+      <CopyTable
+        copies={data.data}
+        loading={isLoading}
+        onChangeStatus={handleChangeStatus}
+        onRowClick={() => {}}
+        pagination={getServerPagination(data, setSkip)}
       />
 
       <Modal title="Создать экземпляр" open={open} onCancel={() => setOpen(false)} onOk={async () => {
-        const values = await form.validateFields();
-        await create.mutateAsync({ inventoryNumber: values.inventoryNumber, bookId: Number(values.bookId) });
-        form.resetFields();
-        setOpen(false);
+        try {
+          const values = await form.validateFields();
+          await create.mutateAsync({ inventoryNumber: values.inventoryNumber, bookId: Number(values.bookId) });
+          message.success('Экземпляр создан');
+          form.resetFields();
+          setOpen(false);
+        } catch (e: any) {
+          const err = e?.response?.data?.message || e?.message || 'Не удалось создать экземпляр';
+          message.error(err);
+        }
       }}>
         <Form form={form} layout="vertical">
           <Form.Item name="inventoryNumber" label="Инвентарный номер" rules={[{ required: true }]}> 

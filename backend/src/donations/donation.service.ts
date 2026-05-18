@@ -7,20 +7,47 @@ import { UpdateDonationDto } from './dto/update-donation.dto';
 
 @Injectable()
 export class DonationService {
-  constructor(private prisma: PrismaService, private audit: AuditService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+  ) {}
 
-  async create(dto: { donorName: string; items: { bookId: number; quantity: number }[] }) {
+  async create(dto: {
+    donorName: string;
+    items: { bookId: number; quantity: number }[];
+  }) {
     return this.prisma.$transaction(async (tx) => {
-      const donation = await tx.donation.create({ data: { donorName: dto.donorName } });
+      const donation = await tx.donation.create({
+        data: { donorName: dto.donorName },
+      });
       for (const item of dto.items) {
-        await tx.donationItem.create({ data: { donationId: donation.id, bookId: item.bookId, quantity: item.quantity } });
+        await tx.donationItem.create({
+          data: {
+            donationId: donation.id,
+            bookId: item.bookId,
+            quantity: item.quantity,
+          },
+        });
         for (let i = 0; i < item.quantity; i++) {
-          const max = await tx.copy.aggregate({ _max: { inventoryNumber: true } });
+          const max = await tx.copy.aggregate({
+            _max: { inventoryNumber: true },
+          });
           const inventoryNumber = (max._max.inventoryNumber ?? 1000) + 1;
-          await tx.copy.create({ data: { inventoryNumber, status: CopyStatus.AVAILABLE, bookId: item.bookId } });
+          await tx.copy.create({
+            data: {
+              inventoryNumber,
+              status: CopyStatus.AVAILABLE,
+              bookId: item.bookId,
+            },
+          });
         }
       }
-      await this.audit.log({ action: 'create', entity: 'Donation', entityId: donation.id, changes: { donorName: dto.donorName } });
+      await this.audit.log({
+        action: 'create',
+        entity: 'Donation',
+        entityId: donation.id,
+        changes: { donorName: dto.donorName },
+      });
       return donation;
     });
   }
@@ -31,7 +58,7 @@ export class DonationService {
         skip,
         take,
         orderBy: { date: 'desc' },
-        include: { items: true },
+        include: { items: { include: { book: { include: { author: true } } } } },
       }),
       this.prisma.donation.count(),
     ]);
@@ -40,7 +67,10 @@ export class DonationService {
   }
 
   async findOne(id: number) {
-    const donation = await this.prisma.donation.findUnique({ where: { id }, include: { items: true } });
+    const donation = await this.prisma.donation.findUnique({
+      where: { id },
+      include: { items: { include: { book: { include: { author: true } } } } },
+    });
     if (!donation) throw new NotFoundException('Donation not found');
     return donation;
   }
@@ -53,17 +83,29 @@ export class DonationService {
         donorName: dto.donorName,
       },
     });
-    await this.audit.log({ action: 'update', entity: 'Donation', entityId: id, changes: dto });
+    await this.audit.log({
+      action: 'update',
+      entity: 'Donation',
+      entityId: id,
+      changes: dto,
+    });
     return updated;
   }
 
   async remove(id: number) {
     return this.prisma.$transaction(async (tx) => {
-      const donation = await tx.donation.findUnique({ where: { id }, include: { items: true } });
+      const donation = await tx.donation.findUnique({
+        where: { id },
+        include: { items: { include: { book: { include: { author: true } } } } },
+      });
       if (!donation) throw new NotFoundException('Donation not found');
       await tx.donationItem.deleteMany({ where: { donationId: id } });
       const deleted = await tx.donation.delete({ where: { id } });
-      await this.audit.log({ action: 'delete', entity: 'Donation', entityId: id });
+      await this.audit.log({
+        action: 'delete',
+        entity: 'Donation',
+        entityId: id,
+      });
       return deleted;
     });
   }

@@ -5,7 +5,7 @@ import type { Book } from '../../shared/types';
 export const useCreateBook = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: Partial<Book>) => {
+    mutationFn: async (payload: Partial<Book> & { knowledgeAreaIds?: string[] }) => {
       const res = await apiClient.getClient().post<Book>('/books', payload);
       return res.data;
     },

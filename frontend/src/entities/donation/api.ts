@@ -1,15 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
+import type { Book } from '../../shared/types';
 
-export interface DonationItem {
+export interface DonationLineItem {
+  id: number;
+  quantity: number;
+  bookId: number;
+  book?: Book;
+}
+
+export interface DonationListItem {
   id: number;
   donorName: string;
   date: string;
-  items: Array<{ id: number; quantity: number; bookId: number }>;
+  items: DonationLineItem[];
 }
 
 export interface PaginatedDonationResponse {
-  data: DonationItem[];
+  data: DonationListItem[];
   total: number;
   page: number;
   pageSize: number;

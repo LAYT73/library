@@ -1,18 +1,20 @@
 import React from 'react';
 import { Table as AntTable } from 'antd';
-import type { TableColumnsType } from 'antd';
+import type { TableColumnsType, TablePaginationConfig } from 'antd';
 import type { Book as BookType } from '../../shared/types';
 
 interface BookTableProps {
   books: BookType[];
   loading?: boolean;
   onRowClick?: (book: BookType) => void;
+  pagination?: TablePaginationConfig | false;
 }
 
 export const BookTable: React.FC<BookTableProps> = ({
   books,
   loading,
   onRowClick,
+  pagination = false,
 }) => {
   const columns: TableColumnsType<BookType> = [
     {
@@ -43,6 +45,7 @@ export const BookTable: React.FC<BookTableProps> = ({
       dataSource={books}
       loading={loading}
       rowKey="id"
+      pagination={pagination}
       onRow={(record) => ({
         onClick: () => onRowClick?.(record),
       })}

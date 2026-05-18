@@ -34,7 +34,12 @@ export class DisciplineController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   @ApiOperation({ summary: 'List disciplines with pagination' })
   findAll(
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
@@ -44,7 +49,12 @@ export class DisciplineController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   @ApiOperation({ summary: 'Get discipline by id' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);

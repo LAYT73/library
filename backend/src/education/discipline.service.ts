@@ -21,7 +21,9 @@ export class DisciplineService {
   }
 
   async findOne(id: number) {
-    const discipline = await this.prisma.discipline.findUnique({ where: { id } });
+    const discipline = await this.prisma.discipline.findUnique({
+      where: { id },
+    });
     if (!discipline) throw new NotFoundException('Discipline not found');
     return discipline;
   }

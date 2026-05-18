@@ -1,7 +1,9 @@
 import React from 'react';
-import { Spin, Empty, Pagination, Button, Modal, Form, Input, InputNumber, Select } from 'antd';
+import { Spin, Empty, Button, Modal, Form, Input, InputNumber, Select, message } from 'antd';
+import { getServerPagination } from '../../shared/lib/pagination';
 import { useBooks } from '../../shared/hooks/useBooks';
 import { useAuthors } from '../../entities/author/api';
+import { useKnowledgeAreas } from '../../entities/knowledgeArea/api';
 import { BookTable } from '../../entities/book/BookTable';
 import { AppLayout } from '../../widgets/layout/AppLayout';
 import { useCreateBook } from '../../entities/book/api';
@@ -15,6 +17,7 @@ export const CatalogPage: React.FC = () => {
   const createBook = useCreateBook();
   const [form] = Form.useForm();
   const { data: authorsData } = useAuthors(0, 1000);
+  const { data: areasData } = useKnowledgeAreas(0, 1000);
 
   if (isLoading) {
     return (
@@ -45,16 +48,24 @@ export const CatalogPage: React.FC = () => {
         open={isModalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={async () => {
-          const values = await form.validateFields();
-          await createBook.mutateAsync({
-            isbn: values.isbn,
-            title: values.title,
-            publisher: values.publisher,
-            year: values.year,
-            authorId: Number(values.authorId),
-          });
-          form.resetFields();
-          setModalOpen(false);
+          try {
+            const values = await form.validateFields();
+            await createBook.mutateAsync({
+              isbn: values.isbn,
+              title: values.title,
+              publisher: values.publisher,
+              year: values.year,
+              authorId: Number(values.authorId),
+              knowledgeAreaIds: values.knowledgeAreaIds?.map((id: number) => Number(id)),
+            });
+            message.success('Книга создана');
+            form.resetFields();
+            setModalOpen(false);
+          } catch (e: unknown) {
+            const err = e as { response?: { data?: { message?: string | string[] } } };
+            const msg = err.response?.data?.message;
+            message.error(Array.isArray(msg) ? msg.join(', ') : msg ?? 'Не удалось создать книгу');
+          }
         }}
       >
         <Form form={form} layout="vertical">
@@ -75,6 +86,11 @@ export const CatalogPage: React.FC = () => {
               {authorsData?.data?.map((a: any) => (<Select.Option key={a.id} value={a.id}>{a.fullName} (#{a.id})</Select.Option>))}
             </Select>
           </Form.Item>
+          <Form.Item name="knowledgeAreaIds" label="Области знаний">
+            <Select mode="multiple" placeholder="Выберите области знаний (если есть)">
+              {areasData?.data?.map((ar: any) => (<Select.Option key={ar.id} value={ar.id}>{ar.name} (#{ar.id})</Select.Option>))}
+            </Select>
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -82,14 +98,7 @@ export const CatalogPage: React.FC = () => {
         books={data.data}
         loading={isLoading}
         onRowClick={(book) => navigate(`/catalog/${book.id}`)}
-      />
-
-      <Pagination
-        current={data.page}
-        total={data.total}
-        pageSize={data.pageSize}
-        onChange={(page) => setSkip((page - 1) * data.pageSize)}
-        style={{ marginTop: 16, textAlign: 'right' }}
+        pagination={getServerPagination(data, setSkip)}
       />
     </AppLayout>
   );

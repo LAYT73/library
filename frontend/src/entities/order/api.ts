@@ -4,9 +4,12 @@ import { apiClient } from '../../shared/api/client';
 export interface OrderListItem {
   id: number;
   orderDate: string;
+  expectedDate?: string | null;
   status: string;
   supplierId: number;
   purchaseRequestId?: number | null;
+  isOverdue?: boolean;
+  supplier?: { id: number; name: string };
   items: Array<{ id: number; quantity: number; bookId: number }>;
 }
 
@@ -30,8 +33,8 @@ export const useOrders = (skip = 0, take = 25) => {
 export const useCreateOrderFromRequest = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ requestId, supplierId }: { requestId: number; supplierId: number }) => {
-      const res = await apiClient.getClient().post(`/orders/from-request/${requestId}`, { supplierId });
+    mutationFn: async ({ requestId, supplierId, expectedDate }: { requestId: number; supplierId: number; expectedDate?: string }) => {
+      const res = await apiClient.getClient().post(`/orders/from-request/${requestId}`, { supplierId, expectedDate });
       return res.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
@@ -41,7 +44,7 @@ export const useCreateOrderFromRequest = () => {
 export const useUpdateOrder = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: { status?: string; supplierId?: number; purchaseRequestId?: number | null } }) => {
+    mutationFn: async ({ id, payload }: { id: number; payload: { status?: string; supplierId?: number; purchaseRequestId?: number | null; expectedDate?: string | null } }) => {
       const res = await apiClient.getClient().patch(`/orders/${id}`, payload);
       return res.data;
     },

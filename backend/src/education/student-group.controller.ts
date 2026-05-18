@@ -34,7 +34,12 @@ export class StudentGroupController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   @ApiOperation({ summary: 'List student groups with pagination' })
   findAll(
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
@@ -44,7 +49,12 @@ export class StudentGroupController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD, UserRole.VIEWER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.LIBRARIAN,
+    UserRole.DEPARTMENT_HEAD,
+    UserRole.VIEWER,
+  )
   @ApiOperation({ summary: 'Get student group by id' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);

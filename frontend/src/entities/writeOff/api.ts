@@ -1,15 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
+import type { Book, Copy } from '../../shared/types';
 
-export interface WriteOffItem {
+export interface WriteOffCopyItem {
+  id: number;
+  copyId: number;
+  copy?: Copy & { book?: Book };
+}
+
+export interface WriteOffListItem {
   id: number;
   reason: string;
   date: string;
-  items: Array<{ id: number; copyId: number }>;
+  items: WriteOffCopyItem[];
 }
 
 export interface PaginatedWriteOffResponse {
-  data: WriteOffItem[];
+  data: WriteOffListItem[];
   total: number;
   page: number;
   pageSize: number;
