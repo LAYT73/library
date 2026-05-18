@@ -17,4 +17,3 @@ Dockerfile
 coverage
 test
 .nyc_output
-nginx.conf

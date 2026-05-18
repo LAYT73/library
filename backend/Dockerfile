@@ -18,6 +18,9 @@ RUN npm run prisma:generate
 # Build application
 RUN npm run build
 
+# Compile seed.ts to seed.js
+RUN npm run build && npx tsc prisma/seed.ts --outDir prisma --module commonjs --target es2020 --skipLibCheck true
+
 # Production stage
 FROM node:20-alpine
 
@@ -32,18 +35,15 @@ COPY package*.json ./
 # Install production dependencies only
 RUN npm ci --omit=dev --legacy-peer-deps
 
-# Copy prisma schema
-COPY prisma ./prisma
+# Copy full node_modules from builder (including prisma CLI and client)
+COPY --from=builder /app/node_modules ./node_modules
 
-# COPY GENERATED PRISMA CLIENT
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Copy prisma schema and seed
+COPY prisma ./prisma
+COPY --from=builder /app/prisma/seed.js ./prisma/seed.js
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
-
-# Copy prisma schema
-COPY prisma ./prisma
 
 # Expose port
 EXPOSE 3000
@@ -54,4 +54,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Run with dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["npm", "run", "start:prod"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma db push --skip-generate && node prisma/seed.js && node dist/src/main"]
+# CMD ["npm", "run", "start:prod"]

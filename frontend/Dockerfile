@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -18,11 +18,13 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
+WORKDIR /usr/share/nginx/html
+
 # Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy built application from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist .
 
 # Expose port
 EXPOSE 80

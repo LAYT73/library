@@ -1,11 +1,8 @@
 import './App.css'
+import { RootRouter } from './app/router'
 
 function App() {
-
-  return (
-    <>
-    </>
-  )
+  return <RootRouter />
 }
 
 export default App

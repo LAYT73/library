@@ -14,6 +14,7 @@ import { AcquisitionModule } from './acquisitions/acquisition.module';
 import { DonationModule } from './donations/donation.module';
 import { CoverageModule } from './coverage/coverage.module';
 import { UserModule } from './users/user.module';
+import { EducationModule } from './education/discipline.module';
 import { AuditService } from './common/audit.service';
 import { PrismaService } from './common/prisma.service';
 import { ReportingModule } from './reporting/reporting.module';
@@ -36,6 +37,7 @@ import { ReportingModule } from './reporting/reporting.module';
     DonationModule,
     CoverageModule,
     UserModule,
+    EducationModule,
     ReportingModule,
   ],
   controllers: [AppController],

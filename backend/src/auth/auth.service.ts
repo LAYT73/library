@@ -67,6 +67,18 @@ export class AuthService {
     return this.generateAuthResponse(user);
   }
 
+  async refresh(user: any): Promise<AuthResponseDto> {
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+    });
+
+    if (!dbUser || !dbUser.isActive) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
+    return this.generateAuthResponse(dbUser);
+  }
+
   private generateAuthResponse(user: User): AuthResponseDto {
     const payload = {
       sub: user.id,
