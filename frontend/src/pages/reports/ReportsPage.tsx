@@ -1,10 +1,13 @@
 import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
-import { Card, Form, Input, Button, Select, InputNumber, message, Space, Divider } from 'antd';
+import { Card, Form, Input, Button, Select, message, Space, Divider } from 'antd';
 import { downloadFundReport, downloadCoverageReport, importFundCsv } from '../../entities/report/api';
+import { useCoverageReport } from '../../entities/coverage/api';
 
 export const ReportsPage: React.FC = () => {
   const [form] = Form.useForm();
+
+  const { data: coverageData } = useCoverageReport();
 
   const triggerDownload = async (kind: 'fund' | 'coverage') => {
     try {
@@ -60,8 +63,10 @@ export const ReportsPage: React.FC = () => {
 
             <div>
               <h3>Выгрузка отчёта по обеспеченности</h3>
-              <Form.Item name="disciplineId" label="ID дисциплины" rules={[{ required: true }]}>
-                <InputNumber style={{ width: '100%' }} />
+              <Form.Item name="disciplineId" label="Дисциплина" rules={[{ required: true }]}> 
+                <Select placeholder="Выберите дисциплину для экспорта">
+                  {coverageData?.map((c: any) => (<Select.Option key={c.disciplineId} value={c.disciplineId}>{c.discipline} — {c.department}</Select.Option>))}
+                </Select>
               </Form.Item>
               <Form.Item name="coverageFormat" label="Формат" initialValue="csv">
                 <Select

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CopyStatus } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { UpdateAcquisitionDto } from './dto/update-acquisition.dto';
 
 @Injectable()
 export class AcquisitionService {
@@ -26,6 +27,53 @@ export class AcquisitionService {
 
       await this.audit.log({ action: 'create', entity: 'Acquisition', entityId: acquisition.id, changes: { orderId: order.id } });
       return acquisition;
+    });
+  }
+
+  async findAll(skip = 0, take = 25) {
+    const [data, total] = await Promise.all([
+      this.prisma.acquisition.findMany({
+        skip,
+        take,
+        orderBy: { date: 'desc' },
+        include: { supplier: true, order: true, copies: true },
+      }),
+      this.prisma.acquisition.count(),
+    ]);
+    return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
+  }
+
+  async findOne(id: number) {
+    const acquisition = await this.prisma.acquisition.findUnique({
+      where: { id },
+      include: { supplier: true, order: true, copies: true },
+    });
+    if (!acquisition) throw new NotFoundException('Acquisition not found');
+    return acquisition;
+  }
+
+  async update(id: number, dto: UpdateAcquisitionDto) {
+    await this.findOne(id);
+    const updated = await this.prisma.acquisition.update({
+      where: { id },
+      data: {
+        totalCost: dto.totalCost,
+        supplierId: dto.supplierId,
+        orderId: dto.orderId ?? undefined,
+      },
+    });
+    await this.audit.log({ action: 'update', entity: 'Acquisition', entityId: id, changes: dto });
+    return updated;
+  }
+
+  async remove(id: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const acquisition = await tx.acquisition.findUnique({ where: { id }, include: { copies: true } });
+      if (!acquisition) throw new NotFoundException('Acquisition not found');
+      await tx.copy.updateMany({ where: { acquisitionId: id }, data: { acquisitionId: null } });
+      const deleted = await tx.acquisition.delete({ where: { id } });
+      await this.audit.log({ action: 'delete', entity: 'Acquisition', entityId: id });
+      return deleted;
     });
   }
 }

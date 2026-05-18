@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
 import { CreateOrderFromRequestDto } from './dto/create-order.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
 
 @Injectable()
 export class OrderService {
@@ -20,6 +21,50 @@ export class OrderService {
 
       await this.audit.log({ action: 'create', entity: 'Order', entityId: order.id, changes: { purchaseRequestId: pr.id } });
       return order;
+    });
+  }
+
+  async findAll(skip = 0, take = 25) {
+    const [data, total] = await Promise.all([
+      this.prisma.order.findMany({
+        skip,
+        take,
+        orderBy: { orderDate: 'desc' },
+        include: { supplier: true, purchaseRequest: true, items: true },
+      }),
+      this.prisma.order.count(),
+    ]);
+    return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
+  }
+
+  async findOne(id: number) {
+    const order = await this.prisma.order.findUnique({ where: { id }, include: { supplier: true, purchaseRequest: true, items: true } });
+    if (!order) throw new NotFoundException('Order not found');
+    return order;
+  }
+
+  async update(id: number, dto: UpdateOrderDto) {
+    await this.findOne(id);
+    const updated = await this.prisma.order.update({
+      where: { id },
+      data: {
+        status: dto.status,
+        supplierId: dto.supplierId,
+        purchaseRequestId: dto.purchaseRequestId ?? undefined,
+      },
+    });
+    await this.audit.log({ action: 'update', entity: 'Order', entityId: id, changes: dto });
+    return updated;
+  }
+
+  async remove(id: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({ where: { id }, include: { items: true } });
+      if (!order) throw new NotFoundException('Order not found');
+      await tx.orderItem.deleteMany({ where: { orderId: id } });
+      const deleted = await tx.order.delete({ where: { id } });
+      await this.audit.log({ action: 'delete', entity: 'Order', entityId: id });
+      return deleted;
     });
   }
 }

@@ -20,3 +20,21 @@ export const useCreateUser = () => {
     },
   });
 };
+
+export const useUpdateUser = () => {
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: Partial<{ fullName: string; role: string; department?: string }> }) => {
+      const res = await apiClient.getClient().patch(`/users/${id}`, payload);
+      return res.data;
+    },
+  });
+};
+
+export const useDeleteUser = () => {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.getClient().delete(`/users/${id}`);
+      return res.data;
+    },
+  });
+};

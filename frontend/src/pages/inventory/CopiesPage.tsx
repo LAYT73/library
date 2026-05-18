@@ -1,7 +1,8 @@
 import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
-import { Spin, Empty, Button, Modal, Form, InputNumber, Pagination, message } from 'antd';
+import { Spin, Empty, Button, Modal, Form, InputNumber, Pagination, message, Select } from 'antd';
 import { useCopies, useCreateCopy, useChangeCopyStatus } from '../../entities/copy/api';
+import { useBooks } from '../../shared/hooks/useBooks';
 import { CopyTable } from '../../entities/copy/CopyTable';
 import type { Copy } from '../../shared/types';
 
@@ -12,6 +13,7 @@ export const CopiesPage: React.FC = () => {
   const changeStatus = useChangeCopyStatus();
   const [open, setOpen] = React.useState(false);
   const [form] = Form.useForm();
+  const { data: booksData } = useBooks(0, 1000);
 
   if (isLoading) return (
     <AppLayout>
@@ -58,11 +60,13 @@ export const CopiesPage: React.FC = () => {
         setOpen(false);
       }}>
         <Form form={form} layout="vertical">
-          <Form.Item name="inventoryNumber" label="Инвентарный номер" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} />
+          <Form.Item name="inventoryNumber" label="Инвентарный номер" rules={[{ required: true }]}> 
+            <InputNumber style={{ width: '100%' }} placeholder="Например: 1001" />
           </Form.Item>
-          <Form.Item name="bookId" label="ID книги" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} />
+          <Form.Item name="bookId" label="Книга" rules={[{ required: true }]}>
+            <Select placeholder="Выберите книгу">
+              {booksData?.data?.map((b: any) => (<Select.Option key={b.id} value={b.id}>{b.title} (#{b.id})</Select.Option>))}
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

@@ -47,7 +47,7 @@ export const AuthorsPage: React.FC = () => {
       }}>
         <Form form={form} layout="vertical">
           <Form.Item name="fullName" label="ФИО" rules={[{ required: true }]}>
-            <Input />
+            <Input placeholder="Например: Иванов Иван" />
           </Form.Item>
         </Form>
       </Modal>

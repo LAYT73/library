@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Param, UseGuards, Get, Patch, Delete, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { OrderService } from './order.service';
 import { CreateOrderFromRequestDto } from './dto/create-order.dto';
@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { UpdateOrderDto } from './dto/update-order.dto';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -18,5 +19,36 @@ export class OrderController {
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
   createFromRequest(@Param('id') id: number, @Body() dto: CreateOrderFromRequestDto) {
     return this.service.createFromRequest(Number(id), dto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List orders' })
+  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD)
+  findAll(
+    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
+    @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
+  ) {
+    return this.service.findAll(skip, take);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get order by id' })
+  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD)
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.service.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update order' })
+  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateOrderDto) {
+    return this.service.update(id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete order' })
+  @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.service.remove(id);
   }
 }
