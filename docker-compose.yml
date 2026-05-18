@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-library_user}"]
       interval: 10s
@@ -28,7 +28,7 @@ services:
       dockerfile: Dockerfile
     container_name: library_backend
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       DATABASE_URL: postgresql://${DB_USER:-library_user}:${DB_PASSWORD:-library_password}@postgres:5432/${DB_NAME:-library}
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-3600}
@@ -39,10 +39,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend/src:/app/src
-      - /app/node_modules
-    command: npm run start:dev
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
@@ -51,45 +47,6 @@ services:
       start_period: 40s
     networks:
       - library_network
-
-  # React Frontend
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: library_frontend
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
-      VITE_API_TIMEOUT: ${VITE_API_TIMEOUT:-30000}
-    ports:
-      - "${FRONTEND_PORT:-3001}:80"
-    depends_on:
-      - backend
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-      - /app/node_modules
-    environment:
-      - VITE_API_URL=http://backend:3000
-    networks:
-      - library_network
-
-  # Nginx Reverse Proxy (optional, for production-like setup)
-  nginx:
-    image: nginx:alpine
-    container_name: library_nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - library_network
-    profiles: ["production"]
 
 networks:
   library_network:
