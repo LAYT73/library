@@ -21,19 +21,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
       }}
     >
       <Card style={{ width: 400 }}>
-        <h1 style={{ textAlign: 'center', marginBottom: 30 }}>Library</h1>
+        <h1 style={{ textAlign: 'center', marginBottom: 30 }}>Библиотека</h1>
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
           items={[
             {
               key: 'login',
-              label: 'Login',
+              label: 'Вход',
               children: <LoginForm onSuccess={onSuccess} />,
             },
             {
               key: 'register',
-              label: 'Register',
+              label: 'Регистрация',
               children: <RegisterForm onSuccess={onSuccess} />,
             },
           ]}

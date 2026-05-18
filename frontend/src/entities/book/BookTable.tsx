@@ -21,17 +21,17 @@ export const BookTable: React.FC<BookTableProps> = ({
       key: 'isbn',
     },
     {
-      title: 'Title',
+      title: 'Название',
       dataIndex: 'title',
       key: 'title',
     },
     {
-      title: 'Publisher',
+      title: 'Издатель',
       dataIndex: 'publisher',
       key: 'publisher',
     },
     {
-      title: 'Year',
+      title: 'Год',
       dataIndex: 'year',
       key: 'year',
     },

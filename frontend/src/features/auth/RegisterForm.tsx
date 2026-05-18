@@ -8,9 +8,9 @@ import { useRegister } from '../../shared/hooks/useAuth';
 import { useAuthStore } from '../../shared/lib/store';
 
 const registerSchema = z.object({
-  email: z.string().email('Invalid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Неверный email'),
+  password: z.string().min(6, 'Пароль должен содержать минимум 6 символов'),
+  fullName: z.string().min(2, 'Имя и фамилия должны содержать минимум 2 символа'),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -36,10 +36,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     try {
       const response = await registerMutation.mutateAsync(data);
       login(response);
-      message.success('Registration successful');
+      message.success('Регистрация выполнена');
       onSuccess?.();
     } catch {
-      message.error('Registration failed');
+      message.error('Не удалось зарегистрироваться');
     }
   };
 
@@ -54,7 +54,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
             validateStatus={fieldState.error ? 'error' : ''}
             help={fieldState.error?.message}
           >
-            <Input {...field} placeholder="Enter your email" type="email" />
+            <Input {...field} placeholder="Введите email" type="email" />
           </Form.Item>
         )}
       />
@@ -64,11 +64,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         control={control}
         render={({ field, fieldState }) => (
           <Form.Item
-            label="Full Name"
+            label="ФИО"
             validateStatus={fieldState.error ? 'error' : ''}
             help={fieldState.error?.message}
           >
-            <Input {...field} placeholder="Enter your full name" />
+            <Input {...field} placeholder="Введите ФИО" />
           </Form.Item>
         )}
       />
@@ -78,11 +78,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         control={control}
         render={({ field, fieldState }) => (
           <Form.Item
-            label="Password"
+            label="Пароль"
             validateStatus={fieldState.error ? 'error' : ''}
             help={fieldState.error?.message}
           >
-            <PasswordInput {...field} placeholder="Enter your password" />
+            <PasswordInput {...field} placeholder="Введите пароль" />
           </Form.Item>
         )}
       />
@@ -93,7 +93,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         loading={registerMutation.isPending}
         block
       >
-        Register
+        Зарегистрироваться
       </Button>
     </Form>
   );

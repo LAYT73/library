@@ -16,8 +16,8 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
     >
       <h3>{book.title}</h3>
       <p>ISBN: {book.isbn}</p>
-      <p>Author: {book.author?.fullName || 'Unknown'}</p>
-      <p>Publisher: {book.publisher}</p>
+      <p>Автор: {book.author?.fullName || 'Неизвестен'}</p>
+      <p>Издатель: {book.publisher}</p>
       <Tag color="blue">{book.year}</Tag>
     </Card>
   );

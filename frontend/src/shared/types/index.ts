@@ -38,6 +38,28 @@ export interface Book {
   };
 }
 
+export interface Author {
+  id: number;
+  fullName: string;
+  biography?: string | null;
+}
+
+export interface Supplier {
+  id: number;
+  name: string;
+  contactInfo: string;
+}
+
+export interface PurchaseRequestItem {
+  bookId: number;
+  quantity: number;
+}
+
+export interface PurchaseRequest {
+  id: number;
+  items: PurchaseRequestItem[];
+}
+
 export interface Copy {
   id: number;
   inventoryNumber: number;
@@ -81,6 +103,14 @@ export interface CoverageReport {
   totalRequired: number;
   totalAvailable: number;
   coveragePercent: number;
+}
+
+export interface UserListItem {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRoleType;
+  department?: string;
 }
 
 export interface PaginatedResponse<T> {

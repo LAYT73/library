@@ -8,8 +8,8 @@ import { useLogin } from '../../shared/hooks/useAuth';
 import { useAuthStore } from '../../shared/lib/store';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.email('Неверный email'),
+  password: z.string().min(6, 'Пароль должен содержать минимум 6 символов'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -34,10 +34,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     try {
       const response = await loginMutation.mutateAsync(data);
       login(response);
-      message.success('Login successful');
+      message.success('Вход выполнен');
       onSuccess?.();
     } catch {
-      message.error('Login failed');
+      message.error('Не удалось войти');
     }
   };
 
@@ -52,7 +52,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             validateStatus={fieldState.error ? 'error' : ''}
             help={fieldState.error?.message}
           >
-            <Input {...field} placeholder="Enter your email" type="email" />
+            <Input {...field} placeholder="Введите email" type="email" />
           </Form.Item>
         )}
       />
@@ -62,11 +62,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         control={control}
         render={({ field, fieldState }) => (
           <Form.Item
-            label="Password"
+            label="Пароль"
             validateStatus={fieldState.error ? 'error' : ''}
             help={fieldState.error?.message}
           >
-            <PasswordInput {...field} placeholder="Enter your password" />
+            <PasswordInput {...field} placeholder="Введите пароль" />
           </Form.Item>
         )}
       />
@@ -77,7 +77,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         loading={loginMutation.isPending}
         block
       >
-        Login
+        Войти
       </Button>
     </Form>
   );

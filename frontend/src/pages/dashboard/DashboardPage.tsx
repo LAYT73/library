@@ -10,8 +10,8 @@ export const DashboardPage: React.FC = () => {
     <AppLayout>
       <Result
         status="success"
-        title="Welcome to Library Management System"
-        subTitle="Manage your library efficiently"
+        title="Добро пожаловать в систему управления библиотекой"
+        subTitle="Управляйте библиотекой эффективно"
         extra={
           <>
             <Button
@@ -19,10 +19,10 @@ export const DashboardPage: React.FC = () => {
               onClick={() => navigate('/catalog')}
               style={{ marginRight: 8 }}
             >
-              Browse Catalog
+              Перейти в каталог
             </Button>
             <Button onClick={() => navigate('/reports')}>
-              View Reports
+              Посмотреть отчёты
             </Button>
           </>
         }

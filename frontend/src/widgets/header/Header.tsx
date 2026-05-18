@@ -24,7 +24,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ collapsed, onToggle }) => 
         boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
       }}
     >
-      <Tooltip title={collapsed ? 'Expand' : 'Collapse'}>
+      <Tooltip title={collapsed ? 'Развернуть' : 'Свернуть'}>
         <Button
           type="text"
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -33,7 +33,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ collapsed, onToggle }) => 
         />
       </Tooltip>
       <div style={{ fontSize: 14, color: '#666' }}>
-        Welcome, {user?.fullName}
+        Приветствуем, {user?.fullName}
       </div>
     </Header>
   );
