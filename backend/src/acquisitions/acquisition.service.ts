@@ -1,7 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CopyStatus } from '@prisma/client';
+import { CopyStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { AppCacheService } from '../common/cache/app-cache.service';
+import { AcquisitionListQueryDto } from '../common/dto/list-queries.dto';
+import { cachedList } from '../common/utils/cached-list.util';
+import {
+  resolvePagination,
+  searchContains,
+  toPaginatedResult,
+} from '../common/utils/pagination.util';
 import { UpdateAcquisitionDto } from './dto/update-acquisition.dto';
 
 @Injectable()
@@ -9,6 +17,7 @@ export class AcquisitionService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private cache: AppCacheService,
   ) {}
 
   async createFromOrder(orderId: number) {
@@ -48,25 +57,35 @@ export class AcquisitionService {
         entityId: acquisition.id,
         changes: { orderId: order.id },
       });
+      await this.cache.invalidatePrefix('acquisitions:list');
       return acquisition;
     });
   }
 
-  async findAll(skip = 0, take = 25) {
-    const [data, total] = await Promise.all([
-      this.prisma.acquisition.findMany({
-        skip,
-        take,
-        orderBy: { date: 'desc' },
-        include: {
-          supplier: true,
-          order: true,
-          copies: { include: { book: { include: { author: true } } } },
-        },
-      }),
-      this.prisma.acquisition.count(),
-    ]);
-    return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
+  async findAll(query: AcquisitionListQueryDto) {
+    const { skip, take } = resolvePagination(query.skip, query.take);
+    return cachedList(this.cache, 'acquisitions', { ...query, skip, take }, async () => {
+      const search = searchContains(query.search);
+      const where: Prisma.AcquisitionWhereInput = {
+        ...(query.supplierId ? { supplierId: query.supplierId } : {}),
+        ...(search ? { supplier: { name: search } } : {}),
+      };
+      const [data, total] = await Promise.all([
+        this.prisma.acquisition.findMany({
+          skip,
+          take,
+          where,
+          orderBy: { date: 'desc' },
+          include: {
+            supplier: true,
+            order: true,
+            copies: { include: { book: { include: { author: true } } } },
+          },
+        }),
+        this.prisma.acquisition.count({ where }),
+      ]);
+      return toPaginatedResult(data, total, skip, take);
+    });
   }
 
   async findOne(id: number) {
@@ -94,6 +113,7 @@ export class AcquisitionService {
       entityId: id,
       changes: dto,
     });
+    await this.cache.invalidatePrefix('acquisitions:list');
     return updated;
   }
 
@@ -114,6 +134,7 @@ export class AcquisitionService {
         entity: 'Acquisition',
         entityId: id,
       });
+      await this.cache.invalidatePrefix('acquisitions:list');
       return deleted;
     });
   }

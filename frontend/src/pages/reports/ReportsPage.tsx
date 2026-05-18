@@ -4,6 +4,7 @@ import { Card, Form, Input, Button, Select, message, Row, Col, Typography, Divid
 import { FileExcelOutlined, FileTextOutlined, UploadOutlined } from '@ant-design/icons';
 import { downloadFundReport, downloadCoverageReport, importFundCsv } from '../../entities/report/api';
 import { useDisciplines } from '../../entities/discipline/api';
+import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
 
 const { Title, Paragraph } = Typography;
 
@@ -28,7 +29,7 @@ export const ReportsPage: React.FC = () => {
   const [fundForm] = Form.useForm<{ fundFormat: ReportFormat }>();
   const [coverageForm] = Form.useForm<{ disciplineId: number; coverageFormat: ReportFormat }>();
   const [importForm] = Form.useForm<{ csv: string }>();
-  const { data: disciplines } = useDisciplines(0, 500);
+  const { data: disciplines } = useDisciplines(DROPDOWN_LIST_PARAMS);
 
   const handleFundExport = async () => {
     try {

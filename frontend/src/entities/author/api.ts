@@ -1,13 +1,14 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
-import type { Author } from '../../shared/types';
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+import type { Author, PaginatedResponse } from '../../shared/types';
 
-export const useAuthors = (skip = 0, take = 25) => {
+export const useAuthors = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['authors', skip, take],
+    queryKey: ['authors', params],
     queryFn: async () => {
-      const res = await apiClient.getClient().get<{ data: Author[]; total: number; page: number; pageSize: number }>('/authors', {
-        params: { skip, take },
+      const res = await apiClient.getClient().get<PaginatedResponse<Author>>('/authors', {
+        params: buildListParams(params),
       });
       return res.data;
     },

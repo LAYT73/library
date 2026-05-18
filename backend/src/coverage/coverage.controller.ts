@@ -8,7 +8,6 @@ import {
   Delete,
   Query,
   ParseIntPipe,
-  DefaultValuePipe,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -18,6 +17,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { CoverageListQueryDto } from '../common/dto/list-queries.dto';
 import { CreateCoverageDto } from './dto/create-coverage.dto';
 import { UpdateCoverageDto } from './dto/update-coverage.dto';
 
@@ -42,13 +42,8 @@ export class CoverageController {
     UserRole.VIEWER,
   )
   @ApiOperation({ summary: 'List coverage requirements' })
-  findAll(
-    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
-    @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
-    @Query('disciplineId') disciplineId?: string,
-  ) {
-    const dId = disciplineId ? Number(disciplineId) : undefined;
-    return this.service.findAll(skip, take, dId);
+  findAll(@Query() query: CoverageListQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get('discipline/:id')

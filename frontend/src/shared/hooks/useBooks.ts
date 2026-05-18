@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
+import { buildListParams, type ListQueryParams } from '../types/list';
 import type { Book, PaginatedResponse } from '../types';
 
-export const useBooks = (skip = 0, take = 25) => {
+export const useBooks = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['books', skip, take],
+    queryKey: ['books', params],
     queryFn: async () => {
       const response = await apiClient
         .getClient()
         .get<PaginatedResponse<Book>>('/books', {
-          params: { skip, take },
+          params: buildListParams(params),
         });
       return response.data;
     },

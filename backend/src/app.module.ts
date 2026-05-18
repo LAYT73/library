@@ -19,9 +19,11 @@ import { EducationModule } from './education/discipline.module';
 import { AuditService } from './common/audit.service';
 import { PrismaService } from './common/prisma.service';
 import { ReportingModule } from './reporting/reporting.module';
+import { AppCacheModule } from './common/cache/cache.module';
 
 @Module({
   imports: [
+    AppCacheModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

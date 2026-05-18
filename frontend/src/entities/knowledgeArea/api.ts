@@ -2,11 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
 import type { PaginatedResponse } from '../../shared/types';
 
-export const useKnowledgeAreas = (skip = 0, take = 25) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const useKnowledgeAreas = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['knowledgeAreas', skip, take],
+    queryKey: ['knowledgeAreas', params],
     queryFn: async () => {
-      const res = await apiClient.getClient().get<PaginatedResponse<any>>('/knowledge-areas', { params: { skip, take } });
+      const res = await apiClient.getClient().get<PaginatedResponse<any>>('/knowledge-areas', {
+        params: buildListParams(params),
+      });
       return res.data;
     },
   });

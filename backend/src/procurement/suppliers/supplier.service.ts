@@ -1,6 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
+import { AppCacheService } from '../../common/cache/app-cache.service';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { cachedList } from '../../common/utils/cached-list.util';
+import {
+  resolvePagination,
+  searchContains,
+  toPaginatedResult,
+} from '../../common/utils/pagination.util';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 
 @Injectable()
@@ -8,6 +17,7 @@ export class SupplierService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private cache: AppCacheService,
   ) {}
 
   async create(dto: CreateSupplierDto) {
@@ -19,15 +29,23 @@ export class SupplierService {
       entity: 'Supplier',
       entityId: created.id,
     });
+    await this.cache.invalidatePrefix('suppliers:list');
     return created;
   }
 
-  async findAll(skip = 0, take = 25) {
-    const [data, total] = await Promise.all([
-      this.prisma.supplier.findMany({ skip, take }),
-      this.prisma.supplier.count(),
-    ]);
-    return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
+  async findAll(query: PaginationQueryDto) {
+    const { skip, take } = resolvePagination(query.skip, query.take);
+    return cachedList(this.cache, 'suppliers', { ...query, skip, take }, async () => {
+      const search = searchContains(query.search);
+      const where: Prisma.SupplierWhereInput = search
+        ? { OR: [{ name: search }, { contactInfo: search }] }
+        : {};
+      const [data, total] = await Promise.all([
+        this.prisma.supplier.findMany({ skip, take, where, orderBy: { name: 'asc' } }),
+        this.prisma.supplier.count({ where }),
+      ]);
+      return toPaginatedResult(data, total, skip, take);
+    });
   }
 
   async findOne(id: number) {
@@ -48,6 +66,7 @@ export class SupplierService {
       entityId: updated.id,
       changes: dto,
     });
+    await this.cache.invalidatePrefix('suppliers:list');
     return updated;
   }
 
@@ -59,6 +78,7 @@ export class SupplierService {
       entity: 'Supplier',
       entityId: id,
     });
+    await this.cache.invalidatePrefix('suppliers:list');
     return deleted;
   }
 }

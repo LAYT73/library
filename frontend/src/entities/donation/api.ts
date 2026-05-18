@@ -23,11 +23,15 @@ export interface PaginatedDonationResponse {
   pageSize: number;
 }
 
-export const useDonations = (skip = 0, take = 25) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const useDonations = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['donations', skip, take],
+    queryKey: ['donations', params],
     queryFn: async () => {
-      const res = await apiClient.getClient().get<PaginatedDonationResponse>('/donations', { params: { skip, take } });
+      const res = await apiClient.getClient().get<PaginatedDonationResponse>('/donations', {
+        params: buildListParams(params),
+      });
       return res.data;
     },
   });

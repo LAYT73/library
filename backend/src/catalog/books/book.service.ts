@@ -6,6 +6,14 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
+import { AppCacheService } from '../../common/cache/app-cache.service';
+import { BookListQueryDto } from '../../common/dto/list-queries.dto';
+import { cachedList } from '../../common/utils/cached-list.util';
+import {
+  resolvePagination,
+  searchContains,
+  toPaginatedResult,
+} from '../../common/utils/pagination.util';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 
@@ -14,6 +22,7 @@ export class BookService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private cache: AppCacheService,
   ) {}
 
   async create(dto: CreateBookDto, userId?: string) {
@@ -46,6 +55,7 @@ export class BookService {
         entityId: book.id,
       });
 
+      await this.cache.invalidatePrefix('books:list');
       return this.findOne(book.id);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -60,18 +70,36 @@ export class BookService {
     }
   }
 
-  async findAll(skip = 0, take = 25) {
-    const [data, total] = await Promise.all([
-      this.prisma.book.findMany({
-        skip,
-        take,
-        include: { author: true },
-        orderBy: { title: 'asc' },
-      }),
-      this.prisma.book.count(),
-    ]);
-
-    return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
+  async findAll(query: BookListQueryDto) {
+    const { skip, take } = resolvePagination(query.skip, query.take);
+    return cachedList(this.cache, 'books', { ...query, skip, take }, async () => {
+      const search = searchContains(query.search);
+      const where: Prisma.BookWhereInput = {
+        ...(query.authorId ? { authorId: query.authorId } : {}),
+        ...(query.year ? { year: query.year } : {}),
+        ...(search
+          ? {
+              OR: [
+                { title: search },
+                { isbn: search },
+                { publisher: search },
+                { author: { fullName: search } },
+              ],
+            }
+          : {}),
+      };
+      const [data, total] = await Promise.all([
+        this.prisma.book.findMany({
+          skip,
+          take,
+          where,
+          include: { author: true },
+          orderBy: { title: 'asc' },
+        }),
+        this.prisma.book.count({ where }),
+      ]);
+      return toPaginatedResult(data, total, skip, take);
+    });
   }
 
   async findOne(id: number) {
@@ -118,6 +146,7 @@ export class BookService {
       changes: dto,
     });
 
+    await this.cache.invalidatePrefix('books:list');
     return this.findOne(id);
   }
 
@@ -130,6 +159,7 @@ export class BookService {
       entity: 'Book',
       entityId: id,
     });
+    await this.cache.invalidatePrefix('books:list');
     return deleted;
   }
 }

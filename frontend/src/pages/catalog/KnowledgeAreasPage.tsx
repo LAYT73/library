@@ -3,10 +3,12 @@ import { AppLayout } from '../../widgets/layout/AppLayout';
 import { Card, Table, Button, Modal, Form, Input, Space, Popconfirm, Spin, Empty, message } from 'antd';
 import { getServerPagination } from '../../shared/lib/pagination';
 import { useKnowledgeAreas, useCreateKnowledgeArea, useUpdateKnowledgeArea, useDeleteKnowledgeArea } from '../../entities/knowledgeArea/api';
+import { useListQueryState } from '../../shared/hooks/useListQueryState';
+import { TableToolbar } from '../../shared/ui/TableToolbar';
 
 export const KnowledgeAreasPage: React.FC = () => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = useKnowledgeAreas(skip, 25);
+  const list = useListQueryState();
+  const { data, isLoading } = useKnowledgeAreas(list.params);
   const create = useCreateKnowledgeArea();
   const update = useUpdateKnowledgeArea();
   const remove = useDeleteKnowledgeArea();
@@ -22,11 +24,14 @@ export const KnowledgeAreasPage: React.FC = () => {
   return (
     <AppLayout>
       <Card title="Области знаний">
-        <div style={{ marginBottom: 16 }}>
-          <Button type="primary" onClick={() => setOpen(true)}>Создать область знаний</Button>
-        </div>
+        <TableToolbar
+          search={list.search}
+          onSearchChange={list.setSearch}
+          searchPlaceholder="Поиск по названию..."
+          extra={<Button type="primary" onClick={() => setOpen(true)}>Создать область знаний</Button>}
+        />
 
-        <Table rowKey="id" dataSource={data.data} pagination={getServerPagination(data, setSkip)} columns={[
+        <Table rowKey="id" dataSource={data.data} pagination={getServerPagination(data, list.setSkip)} columns={[
           { title: 'ID', dataIndex: 'id', key: 'id' },
           { title: 'Название', dataIndex: 'name', key: 'name' },
           { title: 'Действия', key: 'actions', render: (_v, record) => (

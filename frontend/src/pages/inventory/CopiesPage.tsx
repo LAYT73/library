@@ -5,16 +5,25 @@ import { getServerPagination } from '../../shared/lib/pagination';
 import { useCopies, useCreateCopy, useChangeCopyStatus } from '../../entities/copy/api';
 import { useBooks } from '../../shared/hooks/useBooks';
 import { CopyTable } from '../../entities/copy/CopyTable';
+import { useListQueryState } from '../../shared/hooks/useListQueryState';
+import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
+import { TableToolbar } from '../../shared/ui/TableToolbar';
 import type { Copy } from '../../shared/types';
 
+const copyStatusOptions = [
+  { value: 'AVAILABLE', label: 'Доступен' },
+  { value: 'ISSUED', label: 'Выдан' },
+  { value: 'WRITTEN_OFF', label: 'Списан' },
+];
+
 export const CopiesPage: React.FC = () => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = useCopies(skip, 25);
+  const list = useListQueryState<{ status?: string }>();
+  const { data, isLoading } = useCopies(list.params);
   const create = useCreateCopy();
   const changeStatus = useChangeCopyStatus();
   const [open, setOpen] = React.useState(false);
   const [form] = Form.useForm();
-  const { data: booksData } = useBooks(0, 1000);
+  const { data: booksData } = useBooks(DROPDOWN_LIST_PARAMS);
 
   if (isLoading) return (
     <AppLayout>
@@ -40,16 +49,29 @@ export const CopiesPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <div style={{ marginBottom: 16 }}>
-        <Button type="primary" onClick={() => setOpen(true)}>Добавить экземпляр</Button>
-      </div>
+      <TableToolbar
+        search={list.search}
+        onSearchChange={list.setSearch}
+        searchPlaceholder="Поиск: инв. №, книга, ISBN..."
+        filters={
+          <Select
+            allowClear
+            placeholder="Статус"
+            style={{ width: 160 }}
+            value={list.filters.status}
+            options={copyStatusOptions}
+            onChange={(status) => list.setFilters({ ...list.filters, status: status ?? undefined })}
+          />
+        }
+        extra={<Button type="primary" onClick={() => setOpen(true)}>Добавить экземпляр</Button>}
+      />
 
       <CopyTable
         copies={data.data}
         loading={isLoading}
         onChangeStatus={handleChangeStatus}
         onRowClick={() => {}}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
       />
 
       <Modal title="Создать экземпляр" open={open} onCancel={() => setOpen(false)} onOk={async () => {

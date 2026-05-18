@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
+import { AppCacheService } from '../../common/cache/app-cache.service';
+import { PurchaseRequestListQueryDto } from '../../common/dto/list-queries.dto';
+import { cachedList } from '../../common/utils/cached-list.util';
+import { resolvePagination, toPaginatedResult } from '../../common/utils/pagination.util';
 import { CreatePurchaseRequestDto } from './dto/create-pr.dto';
 import { UpdatePurchaseRequestDto } from './dto/update-pr.dto';
 
@@ -9,28 +14,31 @@ export class PurchaseRequestService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private cache: AppCacheService,
   ) {}
 
   async create(dto: CreatePurchaseRequestDto) {
-    return this.prisma.$transaction(async (tx) => {
-      const pr = await tx.purchaseRequest.create({ data: {} });
+    const pr = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.purchaseRequest.create({ data: {} });
       for (const item of dto.items) {
         await tx.purchaseRequestItem.create({
           data: {
             bookId: item.bookId,
             quantity: item.quantity,
-            purchaseRequestId: pr.id,
+            purchaseRequestId: created.id,
           },
         });
       }
-      await this.audit.log({
-        action: 'create',
-        entity: 'PurchaseRequest',
-        entityId: pr.id,
-        changes: { items: dto.items },
-      });
-      return pr;
+      return created;
     });
+    await this.audit.log({
+      action: 'create',
+      entity: 'PurchaseRequest',
+      entityId: pr.id,
+      changes: { items: dto.items },
+    });
+    await this.cache.invalidatePrefix('purchase-requests:list');
+    return pr;
   }
 
   async findOne(id: number) {
@@ -42,17 +50,24 @@ export class PurchaseRequestService {
     return pr;
   }
 
-  async findAll(skip = 0, take = 25) {
-    const [data, total] = await Promise.all([
-      this.prisma.purchaseRequest.findMany({
-        skip,
-        take,
-        orderBy: { date: 'desc' },
-        include: { items: true },
-      }),
-      this.prisma.purchaseRequest.count(),
-    ]);
-    return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
+  async findAll(query: PurchaseRequestListQueryDto) {
+    const { skip, take } = resolvePagination(query.skip, query.take);
+    return cachedList(this.cache, 'purchase-requests', { ...query, skip, take }, async () => {
+      const where: Prisma.PurchaseRequestWhereInput = query.status
+        ? { status: query.status }
+        : {};
+      const [data, total] = await Promise.all([
+        this.prisma.purchaseRequest.findMany({
+          skip,
+          take,
+          where,
+          orderBy: { date: 'desc' },
+          include: { items: true },
+        }),
+        this.prisma.purchaseRequest.count({ where }),
+      ]);
+      return toPaginatedResult(data, total, skip, take);
+    });
   }
 
   async update(id: number, dto: UpdatePurchaseRequestDto) {
@@ -67,11 +82,12 @@ export class PurchaseRequestService {
       entityId: id,
       changes: dto,
     });
+    await this.cache.invalidatePrefix('purchase-requests:list');
     return updated;
   }
 
   async remove(id: number) {
-    return this.prisma.$transaction(async (tx) => {
+    const deleted = await this.prisma.$transaction(async (tx) => {
       const pr = await tx.purchaseRequest.findUnique({
         where: { id },
         include: { items: true },
@@ -80,13 +96,14 @@ export class PurchaseRequestService {
       await tx.purchaseRequestItem.deleteMany({
         where: { purchaseRequestId: id },
       });
-      const deleted = await tx.purchaseRequest.delete({ where: { id } });
-      await this.audit.log({
-        action: 'delete',
-        entity: 'PurchaseRequest',
-        entityId: id,
-      });
-      return deleted;
+      return tx.purchaseRequest.delete({ where: { id } });
     });
+    await this.audit.log({
+      action: 'delete',
+      entity: 'PurchaseRequest',
+      entityId: id,
+    });
+    await this.cache.invalidatePrefix('purchase-requests:list');
+    return deleted;
   }
 }

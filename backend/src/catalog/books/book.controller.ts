@@ -8,7 +8,6 @@ import {
   Delete,
   Query,
   ParseIntPipe,
-  DefaultValuePipe,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -20,6 +19,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { BookListQueryDto } from '../../common/dto/list-queries.dto';
 
 @ApiTags('books')
 @Controller('books')
@@ -42,11 +42,8 @@ export class BookController {
     UserRole.DEPARTMENT_HEAD,
     UserRole.VIEWER,
   )
-  findAll(
-    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
-    @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
-  ) {
-    return this.service.findAll(skip, take);
+  findAll(@Query() query: BookListQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')

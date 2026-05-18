@@ -10,12 +10,14 @@ export interface DisciplineAssignment {
   discipline?: Discipline;
 }
 
-export const useDisciplineAssignments = (skip = 0, take = 25, disciplineId?: number) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const useDisciplineAssignments = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['discipline-assignments', skip, take, disciplineId],
+    queryKey: ['discipline-assignments', params],
     queryFn: async () => {
       const res = await apiClient.getClient().get<PaginatedResponse<DisciplineAssignment>>('/discipline-assignments', {
-        params: { skip, take, ...(disciplineId ? { disciplineId } : {}) },
+        params: buildListParams(params),
       });
       return res.data;
     },

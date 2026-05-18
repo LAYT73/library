@@ -1,27 +1,41 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
+import { AppCacheService } from '../../common/cache/app-cache.service';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { cachedList } from '../../common/utils/cached-list.util';
+import {
+  resolvePagination,
+  searchContains,
+  toPaginatedResult,
+} from '../../common/utils/pagination.util';
 import { CreateKnowledgeAreaDto } from './dto/create-knowledge-area.dto';
 import { UpdateKnowledgeAreaDto } from './dto/update-knowledge-area.dto';
 
 @Injectable()
 export class KnowledgeAreaService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: AppCacheService,
+  ) {}
 
   async create(dto: CreateKnowledgeAreaDto) {
-    return this.prisma.knowledgeArea.create({ data: { name: dto.name } });
+    const created = await this.prisma.knowledgeArea.create({ data: { name: dto.name } });
+    await this.cache.invalidatePrefix('knowledge-areas:list');
+    return created;
   }
 
-  async findAll(skip = 0, take = 25) {
-    const [data, total] = await Promise.all([
-      this.prisma.knowledgeArea.findMany({
-        skip,
-        take,
-        orderBy: { name: 'asc' },
-      }),
-      this.prisma.knowledgeArea.count(),
-    ]);
-
-    return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
+  async findAll(query: PaginationQueryDto) {
+    const { skip, take } = resolvePagination(query.skip, query.take);
+    return cachedList(this.cache, 'knowledge-areas', { ...query, skip, take }, async () => {
+      const search = searchContains(query.search);
+      const where: Prisma.KnowledgeAreaWhereInput = search ? { name: search } : {};
+      const [data, total] = await Promise.all([
+        this.prisma.knowledgeArea.findMany({ skip, take, where, orderBy: { name: 'asc' } }),
+        this.prisma.knowledgeArea.count({ where }),
+      ]);
+      return toPaginatedResult(data, total, skip, take);
+    });
   }
 
   async findOne(id: number) {
@@ -32,14 +46,18 @@ export class KnowledgeAreaService {
 
   async update(id: number, dto: UpdateKnowledgeAreaDto) {
     await this.findOne(id);
-    return this.prisma.knowledgeArea.update({
+    const updated = await this.prisma.knowledgeArea.update({
       where: { id },
       data: { name: dto.name },
     });
+    await this.cache.invalidatePrefix('knowledge-areas:list');
+    return updated;
   }
 
   async remove(id: number) {
     await this.findOne(id);
-    return this.prisma.knowledgeArea.delete({ where: { id } });
+    const deleted = await this.prisma.knowledgeArea.delete({ where: { id } });
+    await this.cache.invalidatePrefix('knowledge-areas:list');
+    return deleted;
   }
 }

@@ -2,6 +2,8 @@ import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
 import { Button, Form, Input, Modal, Popconfirm, Space, Spin, Empty, Table, message, Select, InputNumber, Descriptions } from 'antd';
 import { getServerPagination } from '../../shared/lib/pagination';
+import { useListQueryState } from '../../shared/hooks/useListQueryState';
+import { TableToolbar } from '../../shared/ui/TableToolbar';
 import {
   useDonations,
   useCreateDonation,
@@ -11,10 +13,11 @@ import {
 } from '../../entities/donation/api';
 import { useBooks } from '../../shared/hooks/useBooks';
 import { formatDateTimeRu } from '../../shared/lib/formatters';
+import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
 
 export const DonationsPage: React.FC = () => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = useDonations(skip, 25);
+  const list = useListQueryState();
+  const { data, isLoading } = useDonations(list.params);
   const create = useCreateDonation();
   const update = useUpdateDonation();
   const remove = useDeleteDonation();
@@ -24,7 +27,7 @@ export const DonationsPage: React.FC = () => {
   const [viewing, setViewing] = React.useState<DonationListItem | null>(null);
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [form] = Form.useForm();
-  const { data: booksData } = useBooks(0, 1000);
+  const { data: booksData } = useBooks(DROPDOWN_LIST_PARAMS);
 
   const totalBooks = (items: DonationListItem['items']) =>
     items.reduce((sum, it) => sum + it.quantity, 0);
@@ -75,14 +78,17 @@ export const DonationsPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>Создать пожертвование</Button>
-      </Space>
+      <TableToolbar
+        search={list.search}
+        onSearchChange={list.setSearch}
+        searchPlaceholder="Поиск по донору..."
+        extra={<Button type="primary" onClick={() => setCreateOpen(true)}>Создать пожертвование</Button>}
+      />
 
       <Table<DonationListItem>
         rowKey="id"
         dataSource={data.data}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
         columns={[
           { title: '№', dataIndex: 'id', key: 'id', width: 70 },
           { title: 'Донор', dataIndex: 'donorName', key: 'donorName' },

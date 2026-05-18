@@ -8,7 +8,6 @@ import {
   Delete,
   Query,
   ParseIntPipe,
-  DefaultValuePipe,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
@@ -19,6 +18,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { UserListQueryDto } from '../common/dto/list-queries.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -35,11 +35,8 @@ export class UserController {
 
   @Get()
   @Roles(UserRole.ADMIN)
-  findAll(
-    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
-    @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
-  ) {
-    return this.service.findAll(skip, take);
+  findAll(@Query() query: UserListQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')

@@ -1,9 +1,16 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { CopyStatus } from '@prisma/client';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CopyStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
+import { AppCacheService } from '../../common/cache/app-cache.service';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { cachedList } from '../../common/utils/cached-list.util';
+import {
+  resolvePagination,
+  searchContains,
+  toPaginatedResult,
+} from '../../common/utils/pagination.util';
 import { CreateWriteOffDto } from './dto/create-writeoff.dto';
-import { NotFoundException } from '@nestjs/common';
 import { UpdateWriteOffDto } from './dto/update-writeoff.dto';
 
 @Injectable()
@@ -11,6 +18,7 @@ export class WriteOffService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private cache: AppCacheService,
   ) {}
 
   async create(dto: CreateWriteOffDto) {
@@ -35,28 +43,34 @@ export class WriteOffService {
         entityId: writeOff.id,
         changes: { copyIds: dto.copyIds },
       });
+      await this.cache.invalidatePrefix('write-offs:list');
       return writeOff;
     });
   }
 
-  async findAll(skip = 0, take = 25) {
-    const [data, total] = await Promise.all([
-      this.prisma.writeOff.findMany({
-        skip,
-        take,
-        orderBy: { date: 'desc' },
-        include: {
-          items: {
-            include: {
-              copy: { include: { book: { include: { author: true } } } },
+  async findAll(query: PaginationQueryDto) {
+    const { skip, take } = resolvePagination(query.skip, query.take);
+    return cachedList(this.cache, 'write-offs', { ...query, skip, take }, async () => {
+      const search = searchContains(query.search);
+      const where: Prisma.WriteOffWhereInput = search ? { reason: search } : {};
+      const [data, total] = await Promise.all([
+        this.prisma.writeOff.findMany({
+          skip,
+          take,
+          where,
+          orderBy: { date: 'desc' },
+          include: {
+            items: {
+              include: {
+                copy: { include: { book: { include: { author: true } } } },
+              },
             },
           },
-        },
-      }),
-      this.prisma.writeOff.count(),
-    ]);
-
-    return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
+        }),
+        this.prisma.writeOff.count({ where }),
+      ]);
+      return toPaginatedResult(data, total, skip, take);
+    });
   }
 
   async findOne(id: number) {
@@ -105,6 +119,7 @@ export class WriteOffService {
       entityId: id,
       changes: dto,
     });
+    await this.cache.invalidatePrefix('write-offs:list');
     return updated ?? existing;
   }
 
@@ -122,6 +137,7 @@ export class WriteOffService {
         entity: 'WriteOff',
         entityId: id,
       });
+      await this.cache.invalidatePrefix('write-offs:list');
       return deleted;
     });
   }

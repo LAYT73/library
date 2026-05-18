@@ -55,12 +55,14 @@ export const useReaderNeedsReport = () => {
   });
 };
 
-export const useCoverageRequirements = (skip = 0, take = 25, disciplineId?: number) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const useCoverageRequirements = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['coverage', 'requirements', skip, take, disciplineId],
+    queryKey: ['coverage', 'requirements', params],
     queryFn: async () => {
       const res = await apiClient.getClient().get<PaginatedResponse<CoverageWithRelations>>('/coverage', {
-        params: { skip, take, ...(disciplineId ? { disciplineId } : {}) },
+        params: buildListParams(params),
       });
       return res.data;
     },

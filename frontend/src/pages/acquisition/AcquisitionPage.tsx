@@ -2,6 +2,8 @@ import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
 import { Spin, Empty, Button, Modal, Form, InputNumber, Table, Space, Popconfirm, message, Select, Descriptions } from 'antd';
 import { getServerPagination } from '../../shared/lib/pagination';
+import { useListQueryState } from '../../shared/hooks/useListQueryState';
+import { TableToolbar } from '../../shared/ui/TableToolbar';
 import {
   useAcquisitions,
   useCreateAcquisitionFromOrder,
@@ -12,10 +14,11 @@ import {
 import { useOrders } from '../../entities/order/api';
 import { useSuppliers } from '../../entities/supplier/api';
 import { formatDateTimeRu, formatMoneyRu, formatOrderStatus } from '../../shared/lib/formatters';
+import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
 
 export const AcquisitionPage: React.FC = () => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = useAcquisitions(skip, 25);
+  const list = useListQueryState<{ supplierId?: number }>();
+  const { data, isLoading } = useAcquisitions(list.params);
   const create = useCreateAcquisitionFromOrder();
   const update = useUpdateAcquisition();
   const remove = useDeleteAcquisition();
@@ -25,8 +28,8 @@ export const AcquisitionPage: React.FC = () => {
   const [viewing, setViewing] = React.useState<AcquisitionItem | null>(null);
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [form] = Form.useForm();
-  const { data: ordersData } = useOrders(0, 1000);
-  const { data: suppliersData } = useSuppliers(0, 1000);
+  const { data: ordersData } = useOrders(DROPDOWN_LIST_PARAMS);
+  const { data: suppliersData } = useSuppliers(DROPDOWN_LIST_PARAMS);
 
   const submitCreate = async () => {
     try {
@@ -73,14 +76,29 @@ export const AcquisitionPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>Создать из заказа</Button>
-      </Space>
+      <TableToolbar
+        search={list.search}
+        onSearchChange={list.setSearch}
+        searchPlaceholder="Поиск по поставщику..."
+        filters={
+          <Select
+            allowClear
+            placeholder="Поставщик"
+            style={{ width: 200 }}
+            value={list.filters.supplierId}
+            onChange={(supplierId) =>
+              list.setFilters({ ...list.filters, supplierId: supplierId ?? undefined })
+            }
+            options={suppliersData?.data?.map((s) => ({ value: s.id, label: s.name }))}
+          />
+        }
+        extra={<Button type="primary" onClick={() => setCreateOpen(true)}>Создать из заказа</Button>}
+      />
 
       <Table<AcquisitionItem>
         rowKey="id"
         dataSource={data.data}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
         columns={[
           { title: '№', dataIndex: 'id', key: 'id', width: 70 },
           {

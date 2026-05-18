@@ -2,10 +2,13 @@ import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
 import { Form, Button, message, Table, Spin, Empty, Space, Popconfirm, Modal, Select, Tag, Input } from 'antd';
 import { getServerPagination } from '../../shared/lib/pagination';
+import { useListQueryState } from '../../shared/hooks/useListQueryState';
+import { TableToolbar } from '../../shared/ui/TableToolbar';
 import type { OrderListItem } from '../../entities/order/api';
 import { useOrders, useCreateOrderFromRequest, useUpdateOrder, useDeleteOrder } from '../../entities/order/api';
 import { usePurchaseRequests } from '../../entities/purchaseRequest/api';
 import { useSuppliers } from '../../entities/supplier/api';
+import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
 
 const statusLabels: Record<string, string> = {
   CREATED: 'Создан',
@@ -15,8 +18,8 @@ const statusLabels: Record<string, string> = {
 };
 
 export const OrdersPage: React.FC = () => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = useOrders(skip, 25);
+  const list = useListQueryState<{ status?: string; supplierId?: number }>();
+  const { data, isLoading } = useOrders(list.params);
   const create = useCreateOrderFromRequest();
   const update = useUpdateOrder();
   const remove = useDeleteOrder();
@@ -24,8 +27,8 @@ export const OrdersPage: React.FC = () => {
   const [editOpen, setEditOpen] = React.useState(false);
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [form] = Form.useForm();
-  const { data: requestsData } = usePurchaseRequests(0, 1000);
-  const { data: suppliersData } = useSuppliers(0, 1000);
+  const { data: requestsData } = usePurchaseRequests(DROPDOWN_LIST_PARAMS);
+  const { data: suppliersData } = useSuppliers(DROPDOWN_LIST_PARAMS);
 
   const submitCreate = async () => {
     try {
@@ -85,14 +88,39 @@ export const OrdersPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>Создать заказ из заявки</Button>
-      </Space>
+      <TableToolbar
+        search={list.search}
+        onSearchChange={list.setSearch}
+        searchPlaceholder="Поиск по поставщику..."
+        filters={
+          <>
+            <Select
+              allowClear
+              placeholder="Статус"
+              style={{ width: 160 }}
+              value={list.filters.status}
+              onChange={(status) => list.setFilters({ ...list.filters, status: status ?? undefined })}
+              options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))}
+            />
+            <Select
+              allowClear
+              placeholder="Поставщик"
+              style={{ width: 200 }}
+              value={list.filters.supplierId}
+              onChange={(supplierId) =>
+                list.setFilters({ ...list.filters, supplierId: supplierId ?? undefined })
+              }
+              options={suppliersData?.data?.map((s) => ({ value: s.id, label: s.name }))}
+            />
+          </>
+        }
+        extra={<Button type="primary" onClick={() => setCreateOpen(true)}>Создать заказ из заявки</Button>}
+      />
 
       <Table<OrderListItem>
         rowKey="id"
         dataSource={data.data}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
         columns={[
           { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
           {

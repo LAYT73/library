@@ -6,7 +6,6 @@ import {
   Get,
   Query,
   ParseIntPipe,
-  DefaultValuePipe,
   Patch,
   Delete,
   Body,
@@ -17,6 +16,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { AcquisitionListQueryDto } from '../common/dto/list-queries.dto';
 import { UpdateAcquisitionDto } from './dto/update-acquisition.dto';
 
 @ApiTags('acquisitions')
@@ -42,11 +42,8 @@ export class AcquisitionController {
     UserRole.DEPARTMENT_HEAD,
     UserRole.VIEWER,
   )
-  findAll(
-    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
-    @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
-  ) {
-    return this.service.findAll(skip, take);
+  findAll(@Query() query: AcquisitionListQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')

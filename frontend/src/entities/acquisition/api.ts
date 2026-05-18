@@ -26,12 +26,14 @@ export interface PaginatedAcquisitionResponse {
   pageSize: number;
 }
 
-export const useAcquisitions = (skip = 0, take = 25) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const useAcquisitions = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['acquisitions', skip, take],
+    queryKey: ['acquisitions', params],
     queryFn: async () => {
       const response = await apiClient.getClient().get<PaginatedAcquisitionResponse>('/acquisitions', {
-        params: { skip, take },
+        params: buildListParams(params),
       });
       return response.data;
     },

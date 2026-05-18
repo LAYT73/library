@@ -6,14 +6,31 @@ export function LoggerMiddleware(
   next: NextFunction,
 ) {
   const start = Date.now();
+  const startedAt = new Date().toISOString();
+
   res.on('finish', () => {
     const ms = Date.now() - start;
-    const user = (req as any).user
-      ? (req as any).user.email || (req as any).user.id
-      : 'anonymous';
+    const user = (req as Request & { user?: { email?: string; sub?: string } }).user;
+    const userLabel = user ? user.email ?? user.sub : 'anonymous';
+    const contentLength = res.getHeader('content-length') ?? '-';
+    const ua = (req.get('user-agent') ?? '').slice(0, 80);
+
     console.log(
-      `${req.method} ${req.originalUrl} ${res.statusCode} - ${ms}ms - user:${user}`,
+      JSON.stringify({
+        ts: startedAt,
+        level: res.statusCode >= 400 ? 'warn' : 'info',
+        method: req.method,
+        url: req.originalUrl,
+        status: res.statusCode,
+        ms,
+        user: userLabel,
+        ip: req.ip,
+        contentLength,
+        userAgent: ua,
+        query: Object.keys(req.query).length ? req.query : undefined,
+      }),
     );
   });
+
   next();
 }

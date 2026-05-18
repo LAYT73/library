@@ -27,11 +27,15 @@ export const usePurchaseRequest = (id: number) => {
   });
 };
 
-export const usePurchaseRequests = (skip = 0, take = 25) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const usePurchaseRequests = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['purchase-requests', skip, take],
+    queryKey: ['purchase-requests', params],
     queryFn: async () => {
-      const res = await apiClient.getClient().get<PaginatedPurchaseRequestResponse>('/purchase-requests', { params: { skip, take } });
+      const res = await apiClient.getClient().get<PaginatedPurchaseRequestResponse>('/purchase-requests', {
+        params: buildListParams(params),
+      });
       return res.data;
     },
   });

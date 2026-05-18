@@ -2,12 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
 import type { Supplier } from '../../shared/types';
 
-export const useSuppliers = (skip = 0, take = 25) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const useSuppliers = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['suppliers', skip, take],
+    queryKey: ['suppliers', params],
     queryFn: async () => {
       const res = await apiClient.getClient().get<{ data: Supplier[]; total: number; page: number; pageSize: number }>('/suppliers', {
-        params: { skip, take },
+        params: buildListParams(params),
       });
       return res.data;
     },

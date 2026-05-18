@@ -22,11 +22,15 @@ export interface PaginatedWriteOffResponse {
   pageSize: number;
 }
 
-export const useWriteOffs = (skip = 0, take = 25) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const useWriteOffs = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['write-offs', skip, take],
+    queryKey: ['write-offs', params],
     queryFn: async () => {
-      const res = await apiClient.getClient().get<PaginatedWriteOffResponse>('/write-offs', { params: { skip, take } });
+      const res = await apiClient.getClient().get<PaginatedWriteOffResponse>('/write-offs', {
+        params: buildListParams(params),
+      });
       return res.data;
     },
   });

@@ -2,11 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
 import type { PaginatedResponse, StudentGroup } from '../../shared/types';
 
-export const useStudentGroups = (skip = 0, take = 25) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const useStudentGroups = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['student-groups', skip, take],
+    queryKey: ['student-groups', params],
     queryFn: async () => {
-      const res = await apiClient.getClient().get<PaginatedResponse<StudentGroup>>('/student-groups', { params: { skip, take } });
+      const res = await apiClient.getClient().get<PaginatedResponse<StudentGroup>>('/student-groups', {
+        params: buildListParams(params),
+      });
       return res.data;
     },
   });

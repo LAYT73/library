@@ -2,6 +2,8 @@ import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
 import { Button, Form, Input, Modal, Popconfirm, Space, Spin, Empty, Table, message, Select, Descriptions } from 'antd';
 import { getServerPagination } from '../../shared/lib/pagination';
+import { useListQueryState } from '../../shared/hooks/useListQueryState';
+import { TableToolbar } from '../../shared/ui/TableToolbar';
 import {
   useWriteOffs,
   useCreateWriteOff,
@@ -11,10 +13,11 @@ import {
 } from '../../entities/writeOff/api';
 import { useCopies } from '../../entities/copy/api';
 import { formatCopyStatus, formatDateTimeRu } from '../../shared/lib/formatters';
+import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
 
 export const WriteOffsPage: React.FC = () => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = useWriteOffs(skip, 25);
+  const list = useListQueryState();
+  const { data, isLoading } = useWriteOffs(list.params);
   const create = useCreateWriteOff();
   const update = useUpdateWriteOff();
   const remove = useDeleteWriteOff();
@@ -24,7 +27,7 @@ export const WriteOffsPage: React.FC = () => {
   const [viewing, setViewing] = React.useState<WriteOffListItem | null>(null);
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [form] = Form.useForm();
-  const { data: copiesData } = useCopies(0, 1000);
+  const { data: copiesData } = useCopies(DROPDOWN_LIST_PARAMS);
 
   const copyLabel = (c: { id: number; inventoryNumber: number; bookId: number; book?: { title?: string } }) =>
     `Инв. №${c.inventoryNumber} — ${c.book?.title ?? `книга #${c.bookId}`}`;
@@ -72,14 +75,17 @@ export const WriteOffsPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>Создать списание</Button>
-      </Space>
+      <TableToolbar
+        search={list.search}
+        onSearchChange={list.setSearch}
+        searchPlaceholder="Поиск по причине..."
+        extra={<Button type="primary" onClick={() => setCreateOpen(true)}>Создать списание</Button>}
+      />
 
       <Table<WriteOffListItem>
         rowKey="id"
         dataSource={data.data}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
         columns={[
           { title: '№', dataIndex: 'id', key: 'id', width: 70 },
           { title: 'Причина', dataIndex: 'reason', key: 'reason', ellipsis: true },

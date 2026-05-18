@@ -7,7 +7,6 @@ import {
   Delete,
   Query,
   ParseIntPipe,
-  DefaultValuePipe,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
@@ -17,6 +16,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { AssignmentListQueryDto } from '../common/dto/list-queries.dto';
 
 @ApiTags('discipline-assignments')
 @Controller('discipline-assignments')
@@ -39,13 +39,8 @@ export class DisciplineAssignmentController {
     UserRole.VIEWER,
   )
   @ApiOperation({ summary: 'List discipline assignments' })
-  findAll(
-    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
-    @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
-    @Query('disciplineId') disciplineId?: string,
-  ) {
-    const dId = disciplineId ? Number(disciplineId) : undefined;
-    return this.service.findAll(skip, take, dId);
+  findAll(@Query() query: AssignmentListQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Delete(':id')

@@ -20,11 +20,15 @@ export interface PaginatedOrderResponse {
   pageSize: number;
 }
 
-export const useOrders = (skip = 0, take = 25) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const useOrders = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['orders', skip, take],
+    queryKey: ['orders', params],
     queryFn: async () => {
-      const res = await apiClient.getClient().get<PaginatedOrderResponse>('/orders', { params: { skip, take } });
+      const res = await apiClient.getClient().get<PaginatedOrderResponse>('/orders', {
+        params: buildListParams(params),
+      });
       return res.data;
     },
   });

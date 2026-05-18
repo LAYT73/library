@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
-import type { Copy } from '../../shared/types';
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+import type { Copy, PaginatedResponse } from '../../shared/types';
 
-export const useCopies = (skip = 0, take = 25) => {
+export const useCopies = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['copies', skip, take],
+    queryKey: ['copies', params],
     queryFn: async () => {
-      const res = await apiClient.getClient().get<{ data: Copy[]; total: number; page: number; pageSize: number }>('/copies', {
-        params: { skip, take },
+      const res = await apiClient.getClient().get<PaginatedResponse<Copy>>('/copies', {
+        params: buildListParams(params),
       });
       return res.data;
     },

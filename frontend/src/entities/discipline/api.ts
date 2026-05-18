@@ -2,11 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
 import type { Discipline, PaginatedResponse } from '../../shared/types';
 
-export const useDisciplines = (skip = 0, take = 25) => {
+import { buildListParams, type ListQueryParams } from '../../shared/types/list';
+
+export const useDisciplines = (params: ListQueryParams = {}) => {
   return useQuery({
-    queryKey: ['disciplines', skip, take],
+    queryKey: ['disciplines', params],
     queryFn: async () => {
-      const res = await apiClient.getClient().get<PaginatedResponse<Discipline>>('/disciplines', { params: { skip, take } });
+      const res = await apiClient.getClient().get<PaginatedResponse<Discipline>>('/disciplines', {
+        params: buildListParams(params),
+      });
       return res.data;
     },
   });

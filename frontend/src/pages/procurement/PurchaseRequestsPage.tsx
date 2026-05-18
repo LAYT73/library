@@ -2,15 +2,25 @@ import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
 import { Button, Modal, Form, InputNumber, Table, Space, Spin, Empty, Popconfirm, message, Select, Tag } from 'antd';
 import { getServerPagination } from '../../shared/lib/pagination';
+import { useListQueryState } from '../../shared/hooks/useListQueryState';
+import { TableToolbar } from '../../shared/ui/TableToolbar';
 import { usePurchaseRequests, useCreatePurchaseRequest, useUpdatePurchaseRequest, useDeletePurchaseRequest } from '../../entities/purchaseRequest/api';
 import { useSuppliers } from '../../entities/supplier/api';
 import { useCreateOrderFromRequest } from '../../entities/order/api';
 import { useBooks } from '../../shared/hooks/useBooks';
 import { formatDateTimeRu, formatPurchaseRequestStatus } from '../../shared/lib/formatters';
+import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
+
+const prStatusOptions = [
+  { value: 'PENDING', label: 'Ожидает' },
+  { value: 'APPROVED', label: 'Одобрена' },
+  { value: 'REJECTED', label: 'Отклонена' },
+  { value: 'ORDERED', label: 'В заказе' },
+];
 
 export const PurchaseRequestsPage: React.FC = () => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = usePurchaseRequests(skip, 25);
+  const list = useListQueryState<{ status?: string }>();
+  const { data, isLoading } = usePurchaseRequests(list.params);
   const create = useCreatePurchaseRequest();
   const update = useUpdatePurchaseRequest();
   const remove = useDeletePurchaseRequest();
@@ -18,8 +28,8 @@ export const PurchaseRequestsPage: React.FC = () => {
   const [editOpen, setEditOpen] = React.useState(false);
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [form] = Form.useForm();
-  const { data: booksData } = useBooks(0, 1000);
-  const { data: suppliersData } = useSuppliers(0, 1000);
+  const { data: booksData } = useBooks(DROPDOWN_LIST_PARAMS);
+  const { data: suppliersData } = useSuppliers(DROPDOWN_LIST_PARAMS);
   const createOrder = useCreateOrderFromRequest();
   const [orderModalOpen, setOrderModalOpen] = React.useState(false);
   const [orderPrId, setOrderPrId] = React.useState<number | null>(null);
@@ -62,14 +72,27 @@ export const PurchaseRequestsPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>Создать заявку на закупку</Button>
-      </Space>
+      <TableToolbar
+        search={list.search}
+        onSearchChange={list.setSearch}
+        searchPlaceholder="Поиск..."
+        filters={
+          <Select
+            allowClear
+            placeholder="Статус"
+            style={{ width: 160 }}
+            value={list.filters.status}
+            options={prStatusOptions}
+            onChange={(status) => list.setFilters({ ...list.filters, status: status ?? undefined })}
+          />
+        }
+        extra={<Button type="primary" onClick={() => setCreateOpen(true)}>Создать заявку на закупку</Button>}
+      />
 
       <Table
         rowKey="id"
         dataSource={data.data}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
         columns={[
           { title: '№', dataIndex: 'id', key: 'id', width: 70 },
           {

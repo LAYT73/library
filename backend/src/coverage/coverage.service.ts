@@ -3,8 +3,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CopyStatus, UserRole } from '@prisma/client';
+import { CopyStatus, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
+import { AppCacheService } from '../common/cache/app-cache.service';
+import { CoverageListQueryDto } from '../common/dto/list-queries.dto';
+import { cachedList } from '../common/utils/cached-list.util';
+import {
+  resolvePagination,
+  searchContains,
+  toPaginatedResult,
+} from '../common/utils/pagination.util';
 import { CreateCoverageDto } from './dto/create-coverage.dto';
 import { UpdateCoverageDto } from './dto/update-coverage.dto';
 
@@ -47,21 +55,39 @@ type ReaderNeedsRow = {
 
 @Injectable()
 export class CoverageService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: AppCacheService,
+  ) {}
 
-  async findAll(skip = 0, take = 25, disciplineId?: number) {
-    const where = disciplineId ? { disciplineId } : {};
-    const [data, total] = await Promise.all([
-      this.prisma.coverage.findMany({
-        skip,
-        take,
-        where,
-        orderBy: { id: 'asc' },
-        include: { book: true, discipline: true },
-      }),
-      this.prisma.coverage.count({ where }),
-    ]);
-    return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
+  async findAll(query: CoverageListQueryDto) {
+    const { skip, take } = resolvePagination(query.skip, query.take);
+    return cachedList(this.cache, 'coverage', { ...query, skip, take }, async () => {
+      const search = searchContains(query.search);
+      const where: Prisma.CoverageWhereInput = {
+        ...(query.disciplineId ? { disciplineId: query.disciplineId } : {}),
+        ...(search
+          ? {
+              OR: [
+                { book: { title: search } },
+                { book: { isbn: search } },
+                { discipline: { name: search } },
+              ],
+            }
+          : {}),
+      };
+      const [data, total] = await Promise.all([
+        this.prisma.coverage.findMany({
+          skip,
+          take,
+          where,
+          orderBy: { id: 'asc' },
+          include: { book: true, discipline: true },
+        }),
+        this.prisma.coverage.count({ where }),
+      ]);
+      return toPaginatedResult(data, total, skip, take);
+    });
   }
 
   async create(dto: CreateCoverageDto) {
@@ -78,24 +104,30 @@ export class CoverageService {
         'Coverage for this book and discipline already exists',
       );
     }
-    return this.prisma.coverage.create({
+    const created = await this.prisma.coverage.create({
       data: dto,
       include: { book: true, discipline: true },
     });
+    await this.cache.invalidatePrefix('coverage:list');
+    return created;
   }
 
   async update(id: number, dto: UpdateCoverageDto) {
     await this.findOne(id);
-    return this.prisma.coverage.update({
+    const updated = await this.prisma.coverage.update({
       where: { id },
       data: dto,
       include: { book: true, discipline: true },
     });
+    await this.cache.invalidatePrefix('coverage:list');
+    return updated;
   }
 
   async remove(id: number) {
     await this.findOne(id);
-    return this.prisma.coverage.delete({ where: { id } });
+    const deleted = await this.prisma.coverage.delete({ where: { id } });
+    await this.cache.invalidatePrefix('coverage:list');
+    return deleted;
   }
 
   async findOne(id: number) {

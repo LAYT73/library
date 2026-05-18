@@ -42,6 +42,9 @@ import {
 } from '../../entities/coverage/api';
 import type { DisciplineAssignment } from '../../entities/assignment/api';
 import { useBooks } from '../../shared/hooks/useBooks';
+import { useListQueryState } from '../../shared/hooks/useListQueryState';
+import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
+import { TableToolbar } from '../../shared/ui/TableToolbar';
 import { useAuthStore } from '../../shared/lib/store';
 import { getServerPagination } from '../../shared/lib/pagination';
 import { UserRole } from '../../shared/types';
@@ -67,8 +70,8 @@ export const EducationPage: React.FC = () => {
 };
 
 const DisciplinesTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = useDisciplines(skip, 25);
+  const list = useListQueryState();
+  const { data, isLoading } = useDisciplines(list.params);
   const create = useCreateDiscipline();
   const update = useUpdateDiscipline();
   const remove = useDeleteDiscipline();
@@ -90,7 +93,7 @@ const DisciplinesTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
       <Table
         rowKey="id"
         dataSource={data.data}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
         columns={[
           { title: 'ID', dataIndex: 'id', width: 60 },
           { title: 'Название', dataIndex: 'name' },
@@ -147,8 +150,8 @@ const DisciplinesTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
 };
 
 const GroupsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = useStudentGroups(skip, 25);
+  const list = useListQueryState();
+  const { data, isLoading } = useStudentGroups(list.params);
   const create = useCreateStudentGroup();
   const update = useUpdateStudentGroup();
   const remove = useDeleteStudentGroup();
@@ -166,7 +169,7 @@ const GroupsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
       <Table
         rowKey="id"
         dataSource={data.data}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
         columns={[
           { title: 'ID', dataIndex: 'id', width: 60 },
           { title: 'Группа', dataIndex: 'name' },
@@ -208,10 +211,10 @@ const GroupsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
 };
 
 const AssignmentsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = useDisciplineAssignments(skip, 50);
-  const { data: disciplines } = useDisciplines(0, 500);
-  const { data: groups } = useStudentGroups(0, 500);
+  const list = useListQueryState(undefined, 50);
+  const { data, isLoading } = useDisciplineAssignments(list.params);
+  const { data: disciplines } = useDisciplines(DROPDOWN_LIST_PARAMS);
+  const { data: groups } = useStudentGroups(DROPDOWN_LIST_PARAMS);
   const create = useCreateAssignment();
   const remove = useDeleteAssignment();
   const [open, setOpen] = React.useState(false);
@@ -226,7 +229,7 @@ const AssignmentsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
       <Table<DisciplineAssignment>
         rowKey="id"
         dataSource={data.data}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
         columns={[
           { title: 'Дисциплина', render: (_: unknown, r) => r.discipline?.name ?? '—' },
           { title: 'Кафедра', render: (_: unknown, r) => r.discipline?.department ?? '—' },
@@ -260,11 +263,10 @@ const AssignmentsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
 };
 
 const CoverageRequirementsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
-  const [skip, setSkip] = React.useState(0);
-  const [filterDiscipline, setFilterDiscipline] = React.useState<number | undefined>();
-  const { data, isLoading } = useCoverageRequirements(skip, 25, filterDiscipline);
-  const { data: disciplines } = useDisciplines(0, 500);
-  const { data: books } = useBooks(0, 500);
+  const list = useListQueryState<{ disciplineId?: number }>();
+  const { data, isLoading } = useCoverageRequirements(list.params);
+  const { data: disciplines } = useDisciplines(DROPDOWN_LIST_PARAMS);
+  const { data: books } = useBooks(DROPDOWN_LIST_PARAMS);
   const create = useCreateCoverage();
   const update = useUpdateCoverage();
   const remove = useDeleteCoverage();
@@ -276,20 +278,28 @@ const CoverageRequirementsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) =>
 
   return (
     <>
-      <Space style={{ marginBottom: 16 }}>
-        <Select
-          allowClear
-          placeholder="Фильтр по дисциплине"
-          style={{ width: 280 }}
-          options={disciplines?.data?.map((d) => ({ value: d.id, label: d.name }))}
-          onChange={(v) => { setFilterDiscipline(v); setSkip(0); }}
-        />
-        {canEdit && <Button type="primary" onClick={() => setOpen(true)}>Добавить требование</Button>}
-      </Space>
+      <TableToolbar
+        search={list.search}
+        onSearchChange={list.setSearch}
+        searchPlaceholder="Поиск: дисциплина, книга..."
+        filters={
+          <Select
+            allowClear
+            placeholder="Дисциплина"
+            style={{ width: 280 }}
+            value={list.filters.disciplineId}
+            options={disciplines?.data?.map((d) => ({ value: d.id, label: d.name }))}
+            onChange={(disciplineId) =>
+              list.setFilters({ ...list.filters, disciplineId: disciplineId ?? undefined })
+            }
+          />
+        }
+        extra={canEdit ? <Button type="primary" onClick={() => setOpen(true)}>Добавить требование</Button> : undefined}
+      />
       <Table<CoverageWithRelations>
         rowKey="id"
         dataSource={data.data}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
         columns={[
           { title: 'Дисциплина', render: (_: unknown, r) => r.discipline?.name ?? '—' },
           { title: 'Книга', render: (_: unknown, r) => r.book?.title ?? '—' },

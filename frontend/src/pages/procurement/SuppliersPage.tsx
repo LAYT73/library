@@ -2,11 +2,13 @@ import React from 'react';
 import { AppLayout } from '../../widgets/layout/AppLayout';
 import { Spin, Empty, Button, Modal, Form, Input, Table, Space, Popconfirm, message } from 'antd';
 import { getServerPagination } from '../../shared/lib/pagination';
+import { useListQueryState } from '../../shared/hooks/useListQueryState';
+import { TableToolbar } from '../../shared/ui/TableToolbar';
 import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier } from '../../entities/supplier/api';
 
 export const SuppliersPage: React.FC = () => {
-  const [skip, setSkip] = React.useState(0);
-  const { data, isLoading } = useSuppliers(skip, 25);
+  const list = useListQueryState();
+  const { data, isLoading } = useSuppliers(list.params);
   const create = useCreateSupplier();
   const update = useUpdateSupplier();
   const remove = useDeleteSupplier();
@@ -65,14 +67,17 @@ export const SuppliersPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>Добавить поставщика</Button>
-      </Space>
+      <TableToolbar
+        search={list.search}
+        onSearchChange={list.setSearch}
+        searchPlaceholder="Поиск: название, контакты..."
+        extra={<Button type="primary" onClick={() => setCreateOpen(true)}>Добавить поставщика</Button>}
+      />
 
       <Table
         rowKey="id"
         dataSource={data.data}
-        pagination={getServerPagination(data, setSkip)}
+        pagination={getServerPagination(data, list.setSkip)}
         columns={[
           { title: 'Название', dataIndex: 'name', key: 'name' },
           { title: 'Контакты', dataIndex: 'contactInfo', key: 'contactInfo' },

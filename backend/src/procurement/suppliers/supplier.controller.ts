@@ -5,7 +5,6 @@ import {
   Get,
   Query,
   ParseIntPipe,
-  DefaultValuePipe,
   Param,
   Patch,
   Delete,
@@ -18,6 +17,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @ApiTags('suppliers')
 @Controller('suppliers')
@@ -34,11 +34,8 @@ export class SupplierController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN, UserRole.DEPARTMENT_HEAD)
-  findAll(
-    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
-    @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
-  ) {
-    return this.service.findAll(skip, take);
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')

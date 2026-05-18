@@ -1,8 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { CopyStatus } from '@prisma/client';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CopyStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
 import { AuditService } from '../common/audit.service';
-import { NotFoundException } from '@nestjs/common';
+import { AppCacheService } from '../common/cache/app-cache.service';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { cachedList } from '../common/utils/cached-list.util';
+import {
+  resolvePagination,
+  searchContains,
+  toPaginatedResult,
+} from '../common/utils/pagination.util';
 import { UpdateDonationDto } from './dto/update-donation.dto';
 
 @Injectable()
@@ -10,6 +17,7 @@ export class DonationService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private cache: AppCacheService,
   ) {}
 
   async create(dto: {
@@ -48,22 +56,28 @@ export class DonationService {
         entityId: donation.id,
         changes: { donorName: dto.donorName },
       });
+      await this.cache.invalidatePrefix('donations:list');
       return donation;
     });
   }
 
-  async findAll(skip = 0, take = 25) {
-    const [data, total] = await Promise.all([
-      this.prisma.donation.findMany({
-        skip,
-        take,
-        orderBy: { date: 'desc' },
-        include: { items: { include: { book: { include: { author: true } } } } },
-      }),
-      this.prisma.donation.count(),
-    ]);
-
-    return { data, total, page: Math.floor(skip / take) + 1, pageSize: take };
+  async findAll(query: PaginationQueryDto) {
+    const { skip, take } = resolvePagination(query.skip, query.take);
+    return cachedList(this.cache, 'donations', { ...query, skip, take }, async () => {
+      const search = searchContains(query.search);
+      const where: Prisma.DonationWhereInput = search ? { donorName: search } : {};
+      const [data, total] = await Promise.all([
+        this.prisma.donation.findMany({
+          skip,
+          take,
+          where,
+          orderBy: { date: 'desc' },
+          include: { items: { include: { book: { include: { author: true } } } } },
+        }),
+        this.prisma.donation.count({ where }),
+      ]);
+      return toPaginatedResult(data, total, skip, take);
+    });
   }
 
   async findOne(id: number) {
@@ -89,6 +103,7 @@ export class DonationService {
       entityId: id,
       changes: dto,
     });
+    await this.cache.invalidatePrefix('donations:list');
     return updated;
   }
 
@@ -106,6 +121,7 @@ export class DonationService {
         entity: 'Donation',
         entityId: id,
       });
+      await this.cache.invalidatePrefix('donations:list');
       return deleted;
     });
   }

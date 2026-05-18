@@ -9,11 +9,12 @@ import {
 import { useDisciplines } from '../../entities/discipline/api';
 import { downloadCoverageReport } from '../../entities/report/api';
 import type { CoverageReport } from '../../shared/types';
+import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
 
 export const CoveragePage: React.FC = () => {
   const [view, setView] = React.useState<'discipline' | 'knowledgeArea' | 'readerNeeds'>('discipline');
   const { data, isLoading } = useCoverageReport();
-  const { data: disciplines } = useDisciplines(0, 500);
+  const { data: disciplines } = useDisciplines(DROPDOWN_LIST_PARAMS);
   const [knowledgeDiscipline, setKnowledgeDiscipline] = React.useState<number | undefined>();
   const { data: knowledgeData, isLoading: kaLoading } = useCoverageByKnowledgeArea(knowledgeDiscipline);
   const { data: readerNeeds, isLoading: rnLoading } = useReaderNeedsReport();

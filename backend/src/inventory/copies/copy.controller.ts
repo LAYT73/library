@@ -8,7 +8,6 @@ import {
   Delete,
   Query,
   ParseIntPipe,
-  DefaultValuePipe,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
@@ -19,6 +18,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { CopyListQueryDto } from '../../common/dto/list-queries.dto';
 
 @ApiTags('copies')
 @Controller('copies')
@@ -41,11 +41,8 @@ export class CopyController {
     UserRole.DEPARTMENT_HEAD,
     UserRole.VIEWER,
   )
-  findAll(
-    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
-    @Query('take', new DefaultValuePipe(25), ParseIntPipe) take: number,
-  ) {
-    return this.service.findAll(skip, take);
+  findAll(@Query() query: CopyListQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get(':id')
