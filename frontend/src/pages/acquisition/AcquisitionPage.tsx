@@ -34,7 +34,10 @@ export const AcquisitionPage: React.FC = () => {
   const submitCreate = async () => {
     try {
       const values = await form.validateFields();
-      await create.mutateAsync(Number(values.orderId));
+      await create.mutateAsync({
+        orderId: Number(values.orderId),
+        totalCost: Number(values.totalCost),
+      });
       message.success('Приобретение создано из заказа');
       form.resetFields();
       setCreateOpen(false);
@@ -199,6 +202,13 @@ export const AcquisitionPage: React.FC = () => {
                 label: `Заказ №${o.id} — ${formatOrderStatus(o.status)}`,
               }))}
             />
+          </Form.Item>
+          <Form.Item
+            name="totalCost"
+            label="Стоимость"
+            rules={[{ required: true, message: 'Укажите стоимость' }]}
+          >
+            <InputNumber style={{ width: '100%' }} min={0} step={0.01} placeholder="Например: 1234.56" />
           </Form.Item>
         </Form>
       </Modal>

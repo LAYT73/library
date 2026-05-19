@@ -26,6 +26,15 @@ export const BookTable: React.FC<BookTableProps> = ({
       title: 'Название',
       dataIndex: 'title',
       key: 'title',
+      width: 220,
+      ellipsis: true,
+    },
+    {
+      title: 'Автор',
+      key: 'author',
+      width: 180,
+      ellipsis: true,
+      render: (_: unknown, record: BookType) => record.author?.fullName ?? '—',
     },
     {
       title: 'Издатель',

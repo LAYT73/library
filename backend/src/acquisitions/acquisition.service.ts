@@ -20,7 +20,7 @@ export class AcquisitionService {
     private cache: AppCacheService,
   ) {}
 
-  async createFromOrder(orderId: number) {
+  async createFromOrder(orderId: number, totalCost: number) {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
@@ -29,7 +29,11 @@ export class AcquisitionService {
       if (!order) throw new NotFoundException('Order not found');
 
       const acquisition = await tx.acquisition.create({
-        data: { supplierId: order.supplierId, orderId: order.id, totalCost: 0 },
+        data: {
+          supplierId: order.supplierId,
+          orderId: order.id,
+          totalCost,
+        },
       });
 
       // create copies for each order item
@@ -55,7 +59,7 @@ export class AcquisitionService {
         action: 'create',
         entity: 'Acquisition',
         entityId: acquisition.id,
-        changes: { orderId: order.id },
+        changes: { orderId: order.id, totalCost },
       });
       await this.cache.invalidatePrefix('acquisitions:list');
       return acquisition;

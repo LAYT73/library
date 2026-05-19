@@ -43,8 +43,16 @@ export const useAcquisitions = (params: ListQueryParams = {}) => {
 export const useCreateAcquisitionFromOrder = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (orderId: number) => {
-      const res = await apiClient.getClient().post(`/acquisitions/from-order/${orderId}`);
+    mutationFn: async ({
+      orderId,
+      totalCost,
+    }: {
+      orderId: number;
+      totalCost: number;
+    }) => {
+      const res = await apiClient
+        .getClient()
+        .post(`/acquisitions/from-order/${orderId}`, { totalCost });
       return res.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['acquisitions'] }),

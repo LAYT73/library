@@ -179,88 +179,283 @@ async function main() {
     },
   });
 
-  await prisma.supplier.create({
+  const supplierLan = await prisma.supplier.create({
     data: {
       name: 'Издательский дом «Лань»',
       contactInfo: 'order@lanbook.ru',
     },
   });
 
-  const pr = await prisma.purchaseRequest.create({
-    data: {
-      status: PurchaseRequestStatus.APPROVED,
-      items: {
-        create: [{ bookId: books[0].id, quantity: 5 }, { bookId: books[1].id, quantity: 3 }],
+  const day = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+
+  type PrItem = { bookId: number; quantity: number };
+
+  const procurementChains: Array<{
+    prStatus: PurchaseRequestStatus;
+    prItems: PrItem[];
+    prDate: Date;
+    order?: {
+      status: OrderStatus;
+      supplierId: number;
+      orderDate: Date;
+      expectedDays: number;
+    };
+    acquisition?: { totalCost: number; date: Date };
+  }> = [
+    {
+      prStatus: PurchaseRequestStatus.COMPLETED,
+      prItems: [
+        { bookId: books[0].id, quantity: 5 },
+        { bookId: books[1].id, quantity: 3 },
+      ],
+      prDate: day(95),
+      order: {
+        status: OrderStatus.DELIVERED,
+        supplierId: supplier.id,
+        orderDate: day(88),
+        expectedDays: 14,
+      },
+      acquisition: { totalCost: 42500.5, date: day(82) },
+    },
+    {
+      prStatus: PurchaseRequestStatus.COMPLETED,
+      prItems: [
+        { bookId: books[2].id, quantity: 2 },
+        { bookId: books[3].id, quantity: 4 },
+      ],
+      prDate: day(75),
+      order: {
+        status: OrderStatus.DELIVERED,
+        supplierId: supplierLan.id,
+        orderDate: day(68),
+        expectedDays: 10,
+      },
+      acquisition: { totalCost: 31200, date: day(62) },
+    },
+    {
+      prStatus: PurchaseRequestStatus.APPROVED,
+      prItems: [{ bookId: books[3].id, quantity: 2 }],
+      prDate: day(55),
+      order: {
+        status: OrderStatus.DELIVERED,
+        supplierId: supplier.id,
+        orderDate: day(50),
+        expectedDays: 7,
+      },
+      acquisition: { totalCost: 18750, date: day(48) },
+    },
+    {
+      prStatus: PurchaseRequestStatus.APPROVED,
+      prItems: [
+        { bookId: books[1].id, quantity: 3 },
+        { bookId: books[2].id, quantity: 2 },
+      ],
+      prDate: day(25),
+      order: {
+        status: OrderStatus.DELIVERED,
+        supplierId: supplierLan.id,
+        orderDate: day(20),
+        expectedDays: 5,
+      },
+      acquisition: { totalCost: 28900, date: day(12) },
+    },
+    {
+      prStatus: PurchaseRequestStatus.APPROVED,
+      prItems: [{ bookId: books[0].id, quantity: 2 }],
+      prDate: day(40),
+      order: {
+        status: OrderStatus.SENT,
+        supplierId: supplier.id,
+        orderDate: day(35),
+        expectedDays: 21,
       },
     },
-  });
-
-  const order = await prisma.order.create({
-    data: {
-      supplierId: supplier.id,
-      purchaseRequestId: pr.id,
-      status: OrderStatus.SENT,
-      expectedDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      items: {
-        create: [
-          { bookId: books[0].id, quantity: 5 },
-          { bookId: books[1].id, quantity: 3 },
-        ],
+    {
+      prStatus: PurchaseRequestStatus.APPROVED,
+      prItems: [{ bookId: books[1].id, quantity: 4 }],
+      prDate: day(18),
+      order: {
+        status: OrderStatus.SENT,
+        supplierId: supplierLan.id,
+        orderDate: day(14),
+        expectedDays: 14,
       },
     },
-  });
-
-  const acquisition = await prisma.acquisition.create({
-    data: {
-      supplierId: supplier.id,
-      orderId: order.id,
-      totalCost: 42500.5,
+    {
+      prStatus: PurchaseRequestStatus.APPROVED,
+      prItems: [
+        { bookId: books[2].id, quantity: 1 },
+        { bookId: books[0].id, quantity: 1 },
+      ],
+      prDate: day(30),
+      order: {
+        status: OrderStatus.CREATED,
+        supplierId: supplierLan.id,
+        orderDate: day(28),
+        expectedDays: 30,
+      },
     },
-  });
+    {
+      prStatus: PurchaseRequestStatus.CREATED,
+      prItems: [{ bookId: books[1].id, quantity: 6 }],
+      prDate: day(10),
+    },
+    {
+      prStatus: PurchaseRequestStatus.CREATED,
+      prItems: [
+        { bookId: books[2].id, quantity: 3 },
+        { bookId: books[3].id, quantity: 1 },
+      ],
+      prDate: day(3),
+    },
+    {
+      prStatus: PurchaseRequestStatus.REJECTED,
+      prItems: [{ bookId: books[3].id, quantity: 10 }],
+      prDate: day(50),
+    },
+    {
+      prStatus: PurchaseRequestStatus.REJECTED,
+      prItems: [{ bookId: books[0].id, quantity: 20 }],
+      prDate: day(35),
+    },
+  ];
+
+  const purchaseRequests: Awaited<ReturnType<typeof prisma.purchaseRequest.create>>[] = [];
+  const orders: Awaited<ReturnType<typeof prisma.order.create>>[] = [];
+  const acquisitions: Awaited<ReturnType<typeof prisma.acquisition.create>>[] = [];
+  const acquisitionCopies: Array<{
+    inventoryNumber: number;
+    status: CopyStatus;
+    bookId: number;
+    acquisitionId: number;
+  }> = [];
 
   let inv = 1000;
+
+  for (const chain of procurementChains) {
+    const pr = await prisma.purchaseRequest.create({
+      data: {
+        status: chain.prStatus,
+        date: chain.prDate,
+        items: { create: chain.prItems },
+      },
+    });
+    purchaseRequests.push(pr);
+
+    if (!chain.order) continue;
+
+    const order = await prisma.order.create({
+      data: {
+        supplierId: chain.order.supplierId,
+        purchaseRequestId: pr.id,
+        status: chain.order.status,
+        orderDate: chain.order.orderDate,
+        expectedDate: new Date(
+          chain.order.orderDate.getTime() + chain.order.expectedDays * 24 * 60 * 60 * 1000,
+        ),
+        items: { create: chain.prItems },
+      },
+    });
+    orders.push(order);
+
+    if (!chain.acquisition) continue;
+
+    const acquisition = await prisma.acquisition.create({
+      data: {
+        supplierId: chain.order.supplierId,
+        orderId: order.id,
+        totalCost: chain.acquisition.totalCost,
+        date: chain.acquisition.date,
+      },
+    });
+    acquisitions.push(acquisition);
+
+    for (const item of chain.prItems) {
+      for (let q = 0; q < item.quantity; q++) {
+        inv += 1;
+        acquisitionCopies.push({
+          inventoryNumber: inv,
+          status: CopyStatus.AVAILABLE,
+          bookId: item.bookId,
+          acquisitionId: acquisition.id,
+        });
+      }
+    }
+  }
+
+  const donationDonors = [
+    'Альма-матер (выпускники)',
+    'Профком университета',
+    'Благотворительный фонд «Читай»',
+    'Кафедра информатики',
+    'Библиотека МГУ (обмен)',
+    'Выпускник Иванов А.С.',
+    'Родительский комитет ИВТ-21',
+    'Издательство «Питер» (промо)',
+    'Студенческий совет',
+    'Департамент образования',
+    'Книжный клуб «Полка»',
+    'Пожертвование от семьи Петровых',
+  ];
+  const donations = await Promise.all(
+    donationDonors.map((donorName, i) =>
+      prisma.donation.create({
+        data: {
+          donorName,
+          date: new Date(Date.now() - (donationDonors.length - i) * 5 * 24 * 60 * 60 * 1000),
+          items: {
+            create: [
+              {
+                bookId: books[i % books.length].id,
+                quantity: 1 + (i % 4),
+              },
+              ...(i % 3 === 0
+                ? [{ bookId: books[(i + 1) % books.length].id, quantity: 1 }]
+                : []),
+            ],
+          },
+        },
+      }),
+    ),
+  );
+
   const copyData: Array<{
     inventoryNumber: number;
     status: CopyStatus;
     bookId: number;
     acquisitionId?: number;
-  }> = [];
+  }> = [...acquisitionCopies];
 
   for (const book of books) {
-    const count = book.id <= 2 ? 4 : 2;
+    const count = 2;
     for (let i = 0; i < count; i++) {
       inv += 1;
       copyData.push({
         inventoryNumber: inv,
         status: CopyStatus.AVAILABLE,
         bookId: book.id,
-        acquisitionId: book.id <= 2 ? acquisition.id : undefined,
       });
     }
   }
 
   await prisma.copy.createMany({ data: copyData });
 
-  const donation = await prisma.donation.create({
-    data: {
-      donorName: 'Альма-матер (выпускники)',
-      items: {
-        create: [{ bookId: books[3].id, quantity: 2 }],
-      },
-    },
-  });
-
-  for (let i = 0; i < 2; i++) {
-    inv += 1;
-    await prisma.copy.create({
-      data: {
-        inventoryNumber: inv,
-        status: CopyStatus.AVAILABLE,
-        bookId: books[3].id,
-      },
-    });
+  for (let d = 0; d < donations.length; d++) {
+    const donation = donations[d];
+    const items = await prisma.donationItem.findMany({ where: { donationId: donation.id } });
+    for (const item of items) {
+      for (let q = 0; q < item.quantity; q++) {
+        inv += 1;
+        await prisma.copy.create({
+          data: {
+            inventoryNumber: inv,
+            status: CopyStatus.AVAILABLE,
+            bookId: item.bookId,
+          },
+        });
+      }
+    }
   }
-  void donation;
 
   const wornCopy = await prisma.copy.findFirst({ where: { bookId: books[2].id } });
   if (wornCopy) {
@@ -290,7 +485,9 @@ async function main() {
   console.log('  admin@library.test / admin123');
   console.log('  librarian@library.test / librarian123');
   console.log('  head@library.test / head123');
-  console.log(`  Authors: ${authors.length}, Books: ${books.length}, Copies: ${copyData.length}`);
+  console.log(
+    `  Authors: ${authors.length}, Books: ${books.length}, PRs: ${purchaseRequests.length}, Orders: ${orders.length}, Acquisitions: ${acquisitions.length} (all linked to orders), Copies: ${copyData.length}+, Donations: ${donations.length}`,
+  );
 }
 
 main()

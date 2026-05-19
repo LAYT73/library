@@ -5,6 +5,8 @@ import type { Cache } from 'cache-manager';
 @Injectable()
 export class AppCacheService {
   private readonly logger = new Logger(AppCacheService.name);
+  /** Реестр ключей для prefix-invalidation (cache-manager v7 не даёт dump store) */
+  private readonly keys = new Set<string>();
 
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
@@ -17,27 +19,26 @@ export class AppCacheService {
   }
 
   async set(key: string, value: unknown, ttlSeconds = 60): Promise<void> {
+    this.keys.add(key);
     await this.cache.set(key, value, ttlSeconds * 1000);
     this.logger.debug(`CACHE SET  ${key} ttl=${ttlSeconds}s`);
   }
 
   async del(key: string): Promise<void> {
+    this.keys.delete(key);
     await this.cache.del(key);
     this.logger.debug(`CACHE DEL  ${key}`);
   }
 
-  /** Сбросить все ключи с префиксом (in-memory store) */
+  /** Сбросить все ключи с префиксом */
   async invalidatePrefix(prefix: string): Promise<void> {
-    const store = (this.cache as Cache & { stores?: Array<{ dump?: () => Record<string, unknown> }> })
-      .stores?.[0];
-    const dump = store?.dump?.();
-    if (!dump) {
-      this.logger.debug(`CACHE INVALIDATE prefix=${prefix}* (no dump, skip)`);
+    const toDelete = [...this.keys].filter((k) => k.startsWith(prefix));
+    if (toDelete.length === 0) {
+      this.logger.debug(`CACHE INVALIDATE prefix=${prefix}* keys=0`);
       return;
     }
-    const keys = Object.keys(dump).filter((k) => k.startsWith(prefix));
-    await Promise.all(keys.map((k) => this.cache.del(k)));
-    this.logger.log(`CACHE INVALIDATE prefix=${prefix}* keys=${keys.length}`);
+    await Promise.all(toDelete.map((k) => this.del(k)));
+    this.logger.log(`CACHE INVALIDATE prefix=${prefix}* keys=${toDelete.length}`);
   }
 
   listKey(entity: string, query: Record<string, unknown>): string {

@@ -17,6 +17,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { AcquisitionListQueryDto } from '../common/dto/list-queries.dto';
+import { CreateAcquisitionFromOrderDto } from './dto/create-acquisition-from-order.dto';
 import { UpdateAcquisitionDto } from './dto/update-acquisition.dto';
 
 @ApiTags('acquisitions')
@@ -30,8 +31,11 @@ export class AcquisitionController {
     summary: 'Create acquisition from order id and create copies',
   })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  createFromOrder(@Param('id') id: number) {
-    return this.service.createFromOrder(Number(id));
+  createFromOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateAcquisitionFromOrderDto,
+  ) {
+    return this.service.createFromOrder(id, dto.totalCost);
   }
 
   @Get()
