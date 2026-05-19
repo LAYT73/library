@@ -9,7 +9,13 @@ import { useOrders, useCreateOrderFromRequest, useUpdateOrder, useDeleteOrder } 
 import { usePurchaseRequests } from '../../entities/purchaseRequest/api';
 import { useSuppliers } from '../../entities/supplier/api';
 import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
-import { rules } from '../../shared/validation';
+import { rules, toDateInputValue } from '../../shared/validation';
+import { formatPurchaseRequestStatus } from '../../shared/lib/formatters';
+
+const ORDER_CREATION_REQUEST_PARAMS = {
+  ...DROPDOWN_LIST_PARAMS,
+  forOrderCreation: true,
+} as const;
 
 const statusLabels: Record<string, string> = {
   CREATED: 'Создан',
@@ -27,8 +33,11 @@ export const OrdersPage: React.FC = () => {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [editingId, setEditingId] = React.useState<number | null>(null);
+  const [editingPurchaseRequestId, setEditingPurchaseRequestId] = React.useState<number | null>(null);
+  const [editingOrderDateMin, setEditingOrderDateMin] = React.useState(() => toDateInputValue());
   const [form] = Form.useForm();
-  const { data: requestsData } = usePurchaseRequests(DROPDOWN_LIST_PARAMS);
+  const createDateMin = toDateInputValue();
+  const { data: eligibleRequestsData } = usePurchaseRequests(ORDER_CREATION_REQUEST_PARAMS);
   const { data: suppliersData } = useSuppliers(DROPDOWN_LIST_PARAMS);
 
   const submitCreate = async () => {
@@ -47,20 +56,34 @@ export const OrdersPage: React.FC = () => {
     }
   };
 
-  const openEdit = (record: {
-    id: number;
-    status: string;
-    supplierId: number;
-    purchaseRequestId?: number | null;
-    expectedDate?: string | null;
-  }) => {
+  const openEdit = (record: OrderListItem) => {
     setEditingId(record.id);
+    setEditingPurchaseRequestId(record.purchaseRequestId ?? null);
+    setEditingOrderDateMin(
+      record.orderDate ? record.orderDate.slice(0, 10) : toDateInputValue(),
+    );
     form.setFieldsValue({
       ...record,
       expectedDate: record.expectedDate ? record.expectedDate.slice(0, 10) : undefined,
     });
     setEditOpen(true);
   };
+
+  const editRequestOptions = React.useMemo(() => {
+    const eligible = eligibleRequestsData?.data ?? [];
+    const ids = new Set(eligible.map((r) => r.id));
+    const options = eligible.map((r) => ({
+      value: r.id,
+      label: `Заявка #${r.id} — ${formatPurchaseRequestStatus(r.status)}`,
+    }));
+    if (editingPurchaseRequestId != null && !ids.has(editingPurchaseRequestId)) {
+      options.unshift({
+        value: editingPurchaseRequestId,
+        label: `Заявка #${editingPurchaseRequestId} (текущая)`,
+      });
+    }
+    return options;
+  }, [eligibleRequestsData?.data, editingPurchaseRequestId]);
 
   const submitEdit = async () => {
     if (!editingId) return;
@@ -78,6 +101,8 @@ export const OrdersPage: React.FC = () => {
       message.success('Заказ обновлён');
       form.resetFields();
       setEditingId(null);
+      setEditingPurchaseRequestId(null);
+      setEditingOrderDateMin(toDateInputValue());
       setEditOpen(false);
     } catch {
       message.error('Не удалось обновить заказ');
@@ -184,11 +209,14 @@ export const OrdersPage: React.FC = () => {
       <Modal title="Создать заказ из заявки" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={submitCreate} okText="Создать" cancelText="Отмена">
         <Form form={form} layout="vertical">
           <Form.Item name="requestId" label="Заявка" rules={rules.selectRequired('Выберите заявку')}>
-            <Select placeholder="Выберите заявку">
-              {requestsData?.data?.map((r) => (
-                <Select.Option key={r.id} value={r.id}>Заявка #{r.id} — {r.status}</Select.Option>
-              ))}
-            </Select>
+            <Select
+              placeholder="Выберите заявку"
+              notFoundContent="Нет заявок без заказа (статус «Создана» или «Одобрена»)"
+              options={eligibleRequestsData?.data?.map((r) => ({
+                value: r.id,
+                label: `Заявка #${r.id} — ${formatPurchaseRequestStatus(r.status)}`,
+              }))}
+            />
           </Form.Item>
           <Form.Item name="supplierId" label="Поставщик" rules={rules.selectRequired('Выберите поставщика')}>
             <Select placeholder="Выберите поставщика">
@@ -197,13 +225,29 @@ export const OrdersPage: React.FC = () => {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="expectedDate" label="Ожидаемая дата поставки">
-            <Input type="date" />
+          <Form.Item
+            name="expectedDate"
+            label="Ожидаемая дата поставки"
+            rules={rules.expectedDeliveryDate(createDateMin)}
+          >
+            <Input type="date" min={createDateMin} />
           </Form.Item>
         </Form>
       </Modal>
 
-      <Modal title="Изменить заказ" open={editOpen} onCancel={() => setEditOpen(false)} onOk={submitEdit} okText="Сохранить" cancelText="Отмена">
+      <Modal
+        title="Изменить заказ"
+        open={editOpen}
+        onCancel={() => {
+          setEditOpen(false);
+          setEditingId(null);
+          setEditingPurchaseRequestId(null);
+          setEditingOrderDateMin(toDateInputValue());
+        }}
+        onOk={submitEdit}
+        okText="Сохранить"
+        cancelText="Отмена"
+      >
         <Form form={form} layout="vertical">
           <Form.Item name="status" label="Статус" rules={rules.selectRequired('Выберите статус')}>
             <Select
@@ -215,8 +259,12 @@ export const OrdersPage: React.FC = () => {
               ]}
             />
           </Form.Item>
-          <Form.Item name="expectedDate" label="Ожидаемая дата поставки">
-            <Input type="date" />
+          <Form.Item
+            name="expectedDate"
+            label="Ожидаемая дата поставки"
+            rules={rules.expectedDeliveryDate(editingOrderDateMin)}
+          >
+            <Input type="date" min={editingOrderDateMin} />
           </Form.Item>
           <Form.Item name="supplierId" label="Поставщик">
             <Select placeholder="Выберите поставщика">
@@ -226,11 +274,11 @@ export const OrdersPage: React.FC = () => {
             </Select>
           </Form.Item>
           <Form.Item name="purchaseRequestId" label="Заявка">
-            <Select placeholder="Выберите заявку (или оставьте пустым)" allowClear>
-              {requestsData?.data?.map((r) => (
-                <Select.Option key={r.id} value={r.id}>Заявка #{r.id} — {r.status}</Select.Option>
-              ))}
-            </Select>
+            <Select
+              placeholder="Выберите заявку (или оставьте пустым)"
+              allowClear
+              options={editRequestOptions}
+            />
           </Form.Item>
         </Form>
       </Modal>

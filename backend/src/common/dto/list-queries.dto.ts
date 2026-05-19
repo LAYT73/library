@@ -1,6 +1,6 @@
 import { CopyStatus, OrderStatus, PurchaseRequestStatus, UserRole } from '@prisma/client';
-import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsBoolean, IsEnum, IsInt, IsOptional } from 'class-validator';
 import { PaginationQueryDto } from './pagination-query.dto';
 
 export class BookListQueryDto extends PaginationQueryDto {
@@ -30,6 +30,12 @@ export class PurchaseRequestListQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(PurchaseRequestStatus)
   status?: PurchaseRequestStatus;
+
+  /** Одобренные заявки без существующего заказа (для селекта создания заказа) */
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  forOrderCreation?: boolean;
 }
 
 export class OrderListQueryDto extends PaginationQueryDto {

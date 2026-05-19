@@ -13,10 +13,10 @@ import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
 import { rules } from '../../shared/validation';
 
 const prStatusOptions = [
-  { value: 'PENDING', label: 'Ожидает' },
+  { value: 'CREATED', label: 'Создана' },
   { value: 'APPROVED', label: 'Одобрена' },
   { value: 'REJECTED', label: 'Отклонена' },
-  { value: 'ORDERED', label: 'В заказе' },
+  { value: 'COMPLETED', label: 'Выполнена' },
 ];
 
 export const PurchaseRequestsPage: React.FC = () => {
@@ -28,7 +28,8 @@ export const PurchaseRequestsPage: React.FC = () => {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [editingId, setEditingId] = React.useState<number | null>(null);
-  const [form] = Form.useForm();
+  const [createForm] = Form.useForm();
+  const [editForm] = Form.useForm();
   const { data: booksData } = useBooks(DROPDOWN_LIST_PARAMS);
   const { data: suppliersData } = useSuppliers(DROPDOWN_LIST_PARAMS);
   const createOrder = useCreateOrderFromRequest();
@@ -38,10 +39,10 @@ export const PurchaseRequestsPage: React.FC = () => {
 
   const submitCreate = async () => {
     try {
-      const values = await form.validateFields();
+      const values = await createForm.validateFields();
       await create.mutateAsync({ items: [{ bookId: Number(values.bookId), quantity: Number(values.quantity) }] });
       message.success('Заявка создана');
-      form.resetFields();
+      createForm.resetFields();
       setCreateOpen(false);
     } catch (e) {
       message.error('Не удалось создать заявку');
@@ -50,17 +51,17 @@ export const PurchaseRequestsPage: React.FC = () => {
 
   const openEdit = (record: { id: number; status: string }) => {
     setEditingId(record.id);
-    form.setFieldsValue(record);
+    editForm.setFieldsValue(record);
     setEditOpen(true);
   };
 
   const submitEdit = async () => {
     if (!editingId) return;
     try {
-      const values = await form.validateFields();
+      const values = await editForm.validateFields();
       await update.mutateAsync({ id: editingId, payload: { status: values.status } });
       message.success('Заявка обновлена');
-      form.resetFields();
+      editForm.resetFields();
       setEditingId(null);
       setEditOpen(false);
     } catch (e) {
@@ -128,15 +129,26 @@ export const PurchaseRequestsPage: React.FC = () => {
         ]}
       />
 
-      <Modal title="Создать заявку на закупку" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={submitCreate} okText="Создать" cancelText="Отмена">
-        <Form form={form} layout="vertical">
+      <Modal
+        title="Создать заявку на закупку"
+        open={createOpen}
+        onCancel={() => {
+          setCreateOpen(false);
+          createForm.resetFields();
+        }}
+        onOk={submitCreate}
+        okText="Создать"
+        cancelText="Отмена"
+        destroyOnHidden
+      >
+        <Form form={createForm} layout="vertical">
           <Form.Item name="bookId" label="Книга" rules={rules.selectRequired('Выберите книгу')}>
             <Select placeholder="Выберите книгу">
               {booksData?.data?.map((b: any) => (<Select.Option key={b.id} value={b.id}>{b.title} (#{b.id})</Select.Option>))}
             </Select>
           </Form.Item>
           <Form.Item name="quantity" label="Количество" rules={rules.positiveInt('Количество')}>
-            <InputNumber style={{ width: '100%' }} min={1} precision={0} placeholder="3" />
+            <InputNumber style={{ width: '100%' }} min={1} precision={0} placeholder="3" controls />
           </Form.Item>
         </Form>
       </Modal>
@@ -162,8 +174,19 @@ export const PurchaseRequestsPage: React.FC = () => {
         </Form>
       </Modal>
 
-      <Modal title="Изменить заявку" open={editOpen} onCancel={() => setEditOpen(false)} onOk={submitEdit} okText="Сохранить" cancelText="Отмена">
-        <Form form={form} layout="vertical">
+      <Modal
+        title="Изменить заявку"
+        open={editOpen}
+        onCancel={() => {
+          setEditOpen(false);
+          editForm.resetFields();
+        }}
+        onOk={submitEdit}
+        okText="Сохранить"
+        cancelText="Отмена"
+        destroyOnHidden
+      >
+        <Form form={editForm} layout="vertical">
           <Form.Item name="status" label="Статус" rules={rules.selectRequired('Выберите статус')}>
             <Select options={[
               { value: 'CREATED', label: 'Создана' },

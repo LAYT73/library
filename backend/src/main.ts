@@ -4,12 +4,18 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { AuditUserInterceptor } from './common/interceptors/audit-user.interceptor';
+import { AuditService } from './common/audit.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['log', 'error', 'warn', 'debug', 'verbose'],
   });
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  const auditService = app.get(AuditService);
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new AuditUserInterceptor(auditService),
+  );
 
   // Enable CORS
   app.enableCors({

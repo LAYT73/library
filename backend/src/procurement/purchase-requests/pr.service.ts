@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, PurchaseRequestStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
 import { AppCacheService } from '../../common/cache/app-cache.service';
 import { PurchaseRequestListQueryDto } from '../../common/dto/list-queries.dto';
 import { cachedList } from '../../common/utils/cached-list.util';
 import { resolvePagination, toPaginatedResult } from '../../common/utils/pagination.util';
+import { PURCHASE_REQUEST_STATUSES_FOR_ORDER } from '../purchase-request-eligibility';
 import { CreatePurchaseRequestDto } from './dto/create-pr.dto';
 import { UpdatePurchaseRequestDto } from './dto/update-pr.dto';
 
@@ -53,9 +54,14 @@ export class PurchaseRequestService {
   async findAll(query: PurchaseRequestListQueryDto) {
     const { skip, take } = resolvePagination(query.skip, query.take);
     return cachedList(this.cache, 'purchase-requests', { ...query, skip, take }, async () => {
-      const where: Prisma.PurchaseRequestWhereInput = query.status
-        ? { status: query.status }
-        : {};
+      const where: Prisma.PurchaseRequestWhereInput = query.forOrderCreation
+        ? {
+            status: { in: PURCHASE_REQUEST_STATUSES_FOR_ORDER },
+            orders: { none: {} },
+          }
+        : query.status
+          ? { status: query.status }
+          : {};
       const [data, total] = await Promise.all([
         this.prisma.purchaseRequest.findMany({
           skip,

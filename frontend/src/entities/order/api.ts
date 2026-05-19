@@ -41,7 +41,10 @@ export const useCreateOrderFromRequest = () => {
       const res = await apiClient.getClient().post(`/orders/from-request/${requestId}`, { supplierId, expectedDate });
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
   });
 };
 
@@ -52,7 +55,10 @@ export const useUpdateOrder = () => {
       const res = await apiClient.getClient().patch(`/orders/${id}`, payload);
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
   });
 };
 
@@ -63,6 +69,9 @@ export const useDeleteOrder = () => {
       const res = await apiClient.getClient().delete(`/orders/${id}`);
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
   });
 };

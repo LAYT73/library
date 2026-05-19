@@ -30,8 +30,8 @@ export class BookController {
   @Post()
   @ApiOperation({ summary: 'Create book' })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  create(@Body() dto: CreateBookDto, @Request() req: { user?: { sub: string } }) {
-    return this.service.create(dto, req.user?.sub);
+  create(@Body() dto: CreateBookDto, @Request() req: { user?: { id: string } }) {
+    return this.service.create(dto, req.user?.id);
   }
 
   @Get()
@@ -64,15 +64,15 @@ export class BookController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateBookDto,
-    @Request() req: { user?: { sub: string } },
+    @Request() req: { user?: { id: string } },
   ) {
-    return this.service.update(id, dto, req.user?.sub);
+    return this.service.update(id, dto, req.user?.id);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete book' })
   @Roles(UserRole.ADMIN, UserRole.LIBRARIAN)
-  remove(@Param('id', ParseIntPipe) id: number, @Request() req: { user?: { sub: string } }) {
-    return this.service.remove(id, req.user?.sub);
+  remove(@Param('id', ParseIntPipe) id: number, @Request() req: { user?: { id: string } }) {
+    return this.service.remove(id, req.user?.id);
   }
 }

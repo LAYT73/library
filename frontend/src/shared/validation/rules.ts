@@ -13,6 +13,14 @@ function digitsOnly(s: string): string {
   return s.replace(/[^\dXx]/gi, '').toUpperCase();
 }
 
+/** YYYY-MM-DD для input[type=date] (локальный календарный день). */
+export function toDateInputValue(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function isValidIsbn(raw: string): boolean {
   const d = digitsOnly(raw);
   return d.length === 10 || d.length === 13;
@@ -92,7 +100,7 @@ export const rules = {
   publisher: (): Rule[] => rules.text({ max: 300, min: 2, label: 'издателя' }),
 
   year: (): Rule[] => [
-    rules.required('Укажите год издания'),
+    { required: true, message: 'Укажите год издания' },
     { type: 'number' as const, message: 'Введите год числом' },
     {
       type: 'number' as const,
@@ -103,10 +111,10 @@ export const rules = {
   ],
 
   positiveInt: (label = 'Количество', min = 1): Rule[] => [
-    rules.required(`Укажите ${label.toLowerCase()}`),
+    { required: true, message: `Укажите ${label.toLowerCase()}` },
     { type: 'number' as const, min, message: `Минимум ${min}` },
     {
-      validator: (_: unknown, value: number) => {
+      validator: (_: unknown, value: number | null) => {
         if (value == null || Number.isInteger(value)) return Promise.resolve();
         return Promise.reject(new Error('Введите целое число'));
       },
@@ -118,13 +126,13 @@ export const rules = {
       { type: 'number' as const, min: 0, message: 'Сумма не может быть отрицательной' },
     ];
     if (required) {
-      return [rules.required('Укажите стоимость'), ...base];
+      return [{ required: true, message: 'Укажите стоимость' }, ...base];
     }
     return base;
   },
 
   inventoryNumber: (): Rule[] => [
-    rules.required('Укажите инвентарный номер'),
+    { required: true, message: 'Укажите инвентарный номер' },
     { type: 'number' as const, min: 1, message: 'Номер должен быть не меньше 1' },
     {
       validator: (_: unknown, value: number) => {
@@ -165,7 +173,7 @@ export const rules = {
   ],
 
   studentCount: (): Rule[] => [
-    rules.required('Укажите число студентов'),
+    { required: true, message: 'Укажите число студентов' },
     { type: 'number' as const, min: 0, message: 'Не может быть отрицательным' },
     {
       validator: (_: unknown, value: number) => {
@@ -182,4 +190,18 @@ export const rules = {
   supplierContact: (): Rule[] => rules.text({ max: 400, min: 2, label: 'контактную информацию' }),
 
   csvRequired: (): Rule[] => [{ required: true, whitespace: true, message: 'Вставьте CSV' }],
+
+  /** Ожидаемая дата поставки не раньше minDate (YYYY-MM-DD); по умолчанию — сегодня. */
+  expectedDeliveryDate: (minDate?: string): Rule[] => [
+    {
+      validator: (_: unknown, value: string) => {
+        if (!value) return Promise.resolve();
+        const min = minDate ?? toDateInputValue();
+        if (value >= min) return Promise.resolve();
+        return Promise.reject(
+          new Error('Дата поставки не может быть раньше даты создания заказа'),
+        );
+      },
+    },
+  ],
 };

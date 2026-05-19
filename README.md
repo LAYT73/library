@@ -1,100 +1,149 @@
-# Library Management Backend
+# Library Management System
 
-This repository contains the backend for the Library Management System (NestJS + Prisma + PostgreSQL).
+Система управления библиотечным фондом: каталог книг, инвентарь экземпляров, закупки, поступления, образовательные дисциплины, анализ обеспеченности и отчёты.
 
-## Quick start (backend)
+Монорепозиторий состоит из React SPA (frontend) и REST API на NestJS (backend) с PostgreSQL.
 
-1. Install dependencies
+## Архитектура
+
+```mermaid
+flowchart LR
+  Browser["Browser (React SPA)"]
+  Frontend["Frontend :3001"]
+  Backend["Backend NestJS :3000"]
+  DB["PostgreSQL :5433"]
+  Browser --> Frontend
+  Frontend -->|"REST + JWT"| Backend
+  Backend --> DB
+```
+
+| Компонент | Технологии | Порт (Docker) |
+|-----------|------------|---------------|
+| Frontend | React 19, Vite, Ant Design, TanStack Query | 3001 |
+| Backend | NestJS 11, Prisma 6, JWT | 3000 |
+| База данных | PostgreSQL 15 | 5433 (хост) |
+
+Подробнее: [frontend/README.md](frontend/README.md), [backend/README.md](backend/README.md).
+
+## Быстрый старт (Docker)
+
+1. Скопируйте переменные окружения:
+
+```bash
+cp .env.example .env
+```
+
+2. Запустите весь стек:
+
+```bash
+docker compose up --build
+```
+
+3. Откройте в браузере:
+
+| Сервис | URL |
+|--------|-----|
+| Frontend | http://localhost:3001 |
+| API | http://localhost:3000 |
+| Swagger | http://localhost:3000/api/docs |
+| Health check | http://localhost:3000/health |
+
+Backend-контейнер автоматически применяет схему БД (`prisma db push`) и загружает seed-данные.
+
+## Локальная разработка
+
+### 1. База данных
+
+Запустите PostgreSQL (через Docker или локально) и укажите `DATABASE_URL` в `.env`:
+
+```bash
+# Пример для Postgres из docker-compose (порт 5433 на хосте)
+DATABASE_URL=postgresql://library_user:library_password@localhost:5433/library
+```
+
+### 2. Backend
 
 ```bash
 cd backend
 npm install
-```
-
-2. Generate Prisma client
-
-```bash
 npm run prisma:generate
-```
-
-3. Create database and run migrations (development)
-
-Make sure `DATABASE_URL` in `.env` points to your Postgres instance.
-
-```bash
 npm run prisma:migrate
 npm run prisma:seed
-```
-
-4. Build and run
-
-```bash
-npm run build
-npm start
-```
-
-or in development mode:
-
-```bash
 npm run start:dev
 ```
 
-## Docker
+API будет доступен на http://localhost:3000.
 
-The project contains Dockerfiles and `docker-compose.yml`. Typical flow:
-
-```bash
-docker compose up --build
-# then inside backend container run migrations if not automated
-# docker exec -it <backend_container> npm run prisma:migrate
-```
-
-## API Notes
-
-- Swagger UI: `http://localhost:3000/api/docs`
-- Auth endpoints:
-  - `POST /auth/login` { "email", "password" }
-  - `POST /auth/register` { "email", "password", "fullName", "role" }
-
-- Protected endpoints require `Authorization: Bearer <token>` header.
-
-## Reports endpoints (examples)
-
-- Export fund as CSV:
+### 3. Frontend
 
 ```bash
-curl -H "Authorization: Bearer <token>" "http://localhost:3000/reports/fund?format=csv" -o fund.csv
+cd frontend
+npm install
+npm run dev
 ```
 
-- Export fund as XLSX:
+Dev-сервер Vite: http://localhost:5173. Убедитесь, что `VITE_API_URL=http://localhost:3000` в `.env`.
+
+## Тестовые учётные записи
+
+После `npm run prisma:seed` (или Docker-запуска) доступны пользователи:
+
+| Email | Пароль | Роль |
+|-------|--------|------|
+| admin@library.test | admin123 | ADMIN |
+| librarian@library.test | librarian123 | LIBRARIAN |
+| head@library.test | head123 | DEPARTMENT_HEAD |
+
+## Роли пользователей
+
+| Роль | Описание |
+|------|----------|
+| `ADMIN` | Полный доступ, управление пользователями |
+| `LIBRARIAN` | Каталог, инвентарь, закупки, отчёты |
+| `DEPARTMENT_HEAD` | Просмотр закупок и каталога |
+| `VIEWER` | Только чтение |
+
+## Модули системы
+
+| Модуль | Назначение |
+|--------|------------|
+| Каталог | Авторы, книги, области знаний |
+| Инвентарь | Экземпляры, статусы, списания |
+| Закупки | Поставщики, заявки, заказы |
+| Поступления | Оприходование по заказам, пожертвования |
+| Образование | Дисциплины, группы, назначения |
+| Обеспеченность | Требования и покрытие дисциплин |
+| Отчёты | Экспорт фонда (CSV/XLSX/PDF), импорт CSV |
+| Аудит | Журнал изменений (`audit_logs`) |
+
+## Переменные окружения
+
+Основные переменные из [.env.example](.env.example):
+
+| Переменная | Назначение |
+|------------|------------|
+| `DATABASE_URL` | Строка подключения PostgreSQL |
+| `JWT_SECRET` | Секрет для подписи JWT (мин. 32 символа в production) |
+| `JWT_EXPIRATION` | Время жизни токена (секунды, default: 3600) |
+| `API_PORT` / `BACKEND_PORT` | Порт backend (default: 3000) |
+| `FRONTEND_PORT` | Порт frontend в Docker (default: 3001) |
+| `VITE_API_URL` | URL backend для frontend |
+| `CORS_ORIGIN` | Разрешённый origin для CORS (default: http://localhost:3001) |
+
+## Журналирование (audit_logs)
+
+Изменения сущностей (книги, заказы, заявки, экземпляры и т.д.) записываются в таблицу `audit_logs` через `AuditService`. `userId` берётся из JWT текущего запроса.
+
+Проверка в Docker Postgres:
 
 ```bash
-curl -H "Authorization: Bearer <token>" "http://localhost:3000/reports/fund?format=xlsx" -o fund.xlsx
+docker exec -it library_postgres psql -U library_user -d library -c \
+  "SELECT id, action, entity, \"entityId\", \"userId\", \"createdAt\" FROM audit_logs ORDER BY \"createdAt\" DESC LIMIT 20;"
 ```
 
-- Export coverage for discipline 1 as PDF:
+Подробнее об API и отчётах: [backend/README.md](backend/README.md).
 
-```bash
-curl -H "Authorization: Bearer <token>" "http://localhost:3000/reports/coverage/1?format=pdf" -o coverage_1.pdf
-```
+## Документация
 
-- Import fund CSV (body JSON):
-
-```bash
-curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer <token>" \
-  -d '{"csv":"inventoryNumber,status,bookId,isbn,title,acquisitionId\n1001,AVAILABLE,1,978...,Book Title,1"}' \
-  http://localhost:3000/reports/import/fund
-```
-
-## Migrations and seed
-
-- Generate client: `npm run prisma:generate`
-- Apply migrations: `npm run prisma:migrate`
-- Seed DB: `npm run prisma:seed`
-
-## Notes and next steps
-
-- Audit logs currently use a default `userId = 'system'` when no user is provided; for full auditing, populate `userId` from request context.
-- XLSX/PDF generation uses `xlsx` and `pdfkit`.
-- Consider improving large-report streaming and adding unit/integration tests.
-
+- [frontend/README.md](frontend/README.md) - клиентское приложение (React SPA)
+- [backend/README.md](backend/README.md) - REST API, Prisma, Swagger, отчёты
