@@ -6,6 +6,7 @@ import { useAuthors, useCreateAuthor } from '../../entities/author/api';
 import { AuthorTable } from '../../entities/author/AuthorTable';
 import { useListQueryState } from '../../shared/hooks/useListQueryState';
 import { TableToolbar } from '../../shared/ui/TableToolbar';
+import { rules, maskPersonName } from '../../shared/validation';
 
 export const AuthorsPage: React.FC = () => {
   const list = useListQueryState();
@@ -63,8 +64,13 @@ export const AuthorsPage: React.FC = () => {
         }}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="fullName" label="ФИО" rules={[{ required: true }]}>
-            <Input placeholder="Например: Иванов Иван" />
+          <Form.Item name="fullName" label="ФИО" rules={rules.personName(150)}>
+            <Input
+              placeholder="Например: Иванов Иван"
+              maxLength={150}
+              showCount
+              onChange={(e) => form.setFieldValue('fullName', maskPersonName(e.target.value))}
+            />
           </Form.Item>
         </Form>
       </Modal>

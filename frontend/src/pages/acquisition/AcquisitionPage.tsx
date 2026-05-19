@@ -15,6 +15,7 @@ import { useOrders } from '../../entities/order/api';
 import { useSuppliers } from '../../entities/supplier/api';
 import { formatDateTimeRu, formatMoneyRu, formatOrderStatus } from '../../shared/lib/formatters';
 import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
+import { rules } from '../../shared/validation';
 
 export const AcquisitionPage: React.FC = () => {
   const list = useListQueryState<{ supplierId?: number }>();
@@ -194,7 +195,7 @@ export const AcquisitionPage: React.FC = () => {
 
       <Modal title="Создать приобретение из заказа" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={submitCreate} okText="Создать" cancelText="Отмена">
         <Form form={form} layout="vertical">
-          <Form.Item name="orderId" label="Заказ" rules={[{ required: true }]}>
+          <Form.Item name="orderId" label="Заказ" rules={rules.selectRequired('Выберите заказ')}>
             <Select
               placeholder="Выберите заказ"
               options={ordersData?.data?.map((o) => ({
@@ -206,19 +207,19 @@ export const AcquisitionPage: React.FC = () => {
           <Form.Item
             name="totalCost"
             label="Стоимость"
-            rules={[{ required: true, message: 'Укажите стоимость' }]}
+            rules={rules.nonNegativeMoney()}
           >
-            <InputNumber style={{ width: '100%' }} min={0} step={0.01} placeholder="Например: 1234.56" />
+            <InputNumber style={{ width: '100%' }} min={0} step={0.01} precision={2} placeholder="1234.56" />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal title="Изменить приобретение" open={editOpen} onCancel={() => setEditOpen(false)} onOk={submitEdit} okText="Сохранить" cancelText="Отмена">
         <Form form={form} layout="vertical">
-          <Form.Item name="totalCost" label="Стоимость">
-            <InputNumber style={{ width: '100%' }} min={0} step={0.01} placeholder="Например: 1234.56" />
+          <Form.Item name="totalCost" label="Стоимость" rules={rules.nonNegativeMoney(false)}>
+            <InputNumber style={{ width: '100%' }} min={0} step={0.01} precision={2} placeholder="1234.56" />
           </Form.Item>
-          <Form.Item name="supplierId" label="Поставщик" rules={[{ required: true }]}>
+          <Form.Item name="supplierId" label="Поставщик" rules={rules.selectRequired('Выберите поставщика')}>
             <Select
               placeholder="Выберите поставщика"
               options={suppliersData?.data?.map((s) => ({ value: s.id, label: s.name }))}

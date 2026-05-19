@@ -5,6 +5,7 @@ import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '../../ent
 import { useListQueryState } from '../../shared/hooks/useListQueryState';
 import { TableToolbar } from '../../shared/ui/TableToolbar';
 import { getServerPagination } from '../../shared/lib/pagination';
+import { rules, maskPersonName } from '../../shared/validation';
 
 const { Option } = Select;
 
@@ -118,13 +119,17 @@ export const UsersPage: React.FC = () => {
 
         <div style={{ marginTop: 16 }}>
           <Form form={form} layout="inline">
-            <Form.Item name="email" rules={[{ required: true }]}>
-              <Input placeholder="Например: example@domain.tld" />
+            <Form.Item name="email" rules={rules.email()}>
+              <Input placeholder="example@domain.tld" type="email" />
             </Form.Item>
-            <Form.Item name="fullName" rules={[{ required: true }]}>
-              <Input placeholder="Например: Иванов Иван" />
+            <Form.Item name="fullName" rules={rules.personName(150)}>
+              <Input
+                placeholder="Иванов Иван"
+                maxLength={150}
+                onChange={(e) => form.setFieldValue('fullName', maskPersonName(e.target.value))}
+              />
             </Form.Item>
-            <Form.Item name="role" rules={[{ required: true }]}>
+            <Form.Item name="role" rules={rules.selectRequired('Выберите роль')}>
               <Select style={{ width: 180 }} placeholder="Роль">
                 <Option value="ADMIN">Администратор</Option>
                 <Option value="LIBRARIAN">Библиотекарь</Option>
@@ -132,8 +137,8 @@ export const UsersPage: React.FC = () => {
                 <Option value="VIEWER">Читатель</Option>
               </Select>
             </Form.Item>
-            <Form.Item name="password" rules={[{ required: true }]}>
-              <Input placeholder="Пароль (минимум 8 символов)" />
+            <Form.Item name="password" rules={rules.password(6)}>
+              <Input.Password placeholder="Минимум 6 символов" />
             </Form.Item>
             <Form.Item>
               <Button
@@ -180,10 +185,14 @@ export const UsersPage: React.FC = () => {
           cancelText="Отмена"
         >
           <Form form={editForm} layout="vertical">
-            <Form.Item name="fullName" label="ФИО" rules={[{ required: true }]}>
-              <Input placeholder="Например: Иванов Иван" />
+            <Form.Item name="fullName" label="ФИО" rules={rules.personName(150)}>
+              <Input
+                placeholder="Иванов Иван"
+                maxLength={150}
+                onChange={(e) => editForm.setFieldValue('fullName', maskPersonName(e.target.value))}
+              />
             </Form.Item>
-            <Form.Item name="role" label="Роль" rules={[{ required: true }]}>
+            <Form.Item name="role" label="Роль" rules={rules.selectRequired('Выберите роль')}>
               <Select placeholder="Роль">
                 <Option value="ADMIN">Администратор</Option>
                 <Option value="LIBRARIAN">Библиотекарь</Option>
@@ -191,8 +200,8 @@ export const UsersPage: React.FC = () => {
                 <Option value="VIEWER">Читатель</Option>
               </Select>
             </Form.Item>
-            <Form.Item name="department" label="Кафедра">
-              <Input placeholder="Например: Кафедра математики" />
+            <Form.Item name="department" label="Кафедра" rules={[{ max: 300, message: 'Не более 300 символов' }]}>
+              <Input placeholder="Кафедра математики" maxLength={300} />
             </Form.Item>
           </Form>
         </Modal>

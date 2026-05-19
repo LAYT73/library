@@ -14,6 +14,7 @@ import {
 import { useCopies } from '../../entities/copy/api';
 import { formatCopyStatus, formatDateTimeRu } from '../../shared/lib/formatters';
 import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
+import { rules } from '../../shared/validation';
 
 export const WriteOffsPage: React.FC = () => {
   const list = useListQueryState();
@@ -168,10 +169,10 @@ export const WriteOffsPage: React.FC = () => {
 
       <Modal title="Создать списание" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={submitCreate} okText="Создать" cancelText="Отмена" width={640}>
         <Form form={form} layout="vertical">
-          <Form.Item name="reason" label="Причина" rules={[{ required: true }]}>
-            <Input.TextArea placeholder="Например: износ, повреждение" rows={3} />
+          <Form.Item name="reason" label="Причина" rules={rules.reason()}>
+            <Input.TextArea placeholder="Износ, повреждение..." rows={3} maxLength={300} showCount />
           </Form.Item>
-          <Form.Item name="copyIds" label="Экземпляры" rules={[{ required: true }]}>
+          <Form.Item name="copyIds" label="Экземпляры" rules={rules.selectRequired('Выберите экземпляры')}>
             <Select
               mode="multiple"
               placeholder="Выберите экземпляры для списания"
@@ -185,8 +186,8 @@ export const WriteOffsPage: React.FC = () => {
 
       <Modal title="Изменить списание" open={editOpen} onCancel={() => setEditOpen(false)} onOk={submitEdit} okText="Сохранить" cancelText="Отмена">
         <Form form={form} layout="vertical">
-          <Form.Item name="reason" label="Причина" rules={[{ required: true }]}>
-            <Input.TextArea placeholder="Например: износ, повреждение" rows={3} />
+          <Form.Item name="reason" label="Причина" rules={rules.reason()}>
+            <Input.TextArea placeholder="Износ, повреждение..." rows={3} maxLength={300} showCount />
           </Form.Item>
         </Form>
       </Modal>

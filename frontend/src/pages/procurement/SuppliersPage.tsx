@@ -5,6 +5,7 @@ import { getServerPagination } from '../../shared/lib/pagination';
 import { useListQueryState } from '../../shared/hooks/useListQueryState';
 import { TableToolbar } from '../../shared/ui/TableToolbar';
 import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier } from '../../entities/supplier/api';
+import { rules } from '../../shared/validation';
 
 export const SuppliersPage: React.FC = () => {
   const list = useListQueryState();
@@ -98,22 +99,22 @@ export const SuppliersPage: React.FC = () => {
 
       <Modal title="Создать поставщика" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={submitCreate} okText="Создать" cancelText="Отмена">
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Название" rules={[{ required: true }, { max: 180, message: 'Не более 180 символов' }] }>
-            <Input placeholder="Название организации или ИП" />
+          <Form.Item name="name" label="Название" rules={rules.supplierName()}>
+            <Input placeholder="Название организации или ИП" maxLength={180} showCount />
           </Form.Item>
-          <Form.Item name="contactInfo" label="Контактная информация" rules={[{ required: true }, { max: 400, message: 'Не более 400 символов' }] }>
-            <Input.TextArea placeholder="Адрес, телефон, email, реквизиты" />
+          <Form.Item name="contactInfo" label="Контактная информация" rules={rules.supplierContact()}>
+            <Input.TextArea placeholder="Адрес, телефон, email, реквизиты" maxLength={400} showCount rows={3} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal title="Изменить поставщика" open={editOpen} onCancel={() => setEditOpen(false)} onOk={submitEdit} okText="Сохранить" cancelText="Отмена">
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Название" rules={[{ required: true }, { max: 180, message: 'Не более 180 символов' }] }>
-            <Input placeholder="Название организации или ИП" />
+          <Form.Item name="name" label="Название" rules={rules.supplierName()}>
+            <Input placeholder="Название организации или ИП" maxLength={180} showCount />
           </Form.Item>
-          <Form.Item name="contactInfo" label="Контактная информация" rules={[{ required: true }, { max: 400, message: 'Не более 400 символов' }] }>
-            <Input.TextArea placeholder="Адрес, телефон, email, реквизиты" />
+          <Form.Item name="contactInfo" label="Контактная информация" rules={rules.supplierContact()}>
+            <Input.TextArea placeholder="Адрес, телефон, email, реквизиты" maxLength={400} showCount rows={3} />
           </Form.Item>
         </Form>
       </Modal>

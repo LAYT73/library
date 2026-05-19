@@ -2,17 +2,10 @@ import React from 'react';
 import { Form, Button, message } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Input, PasswordInput } from '../../shared/ui/Input';
 import { useLogin } from '../../shared/hooks/useAuth';
 import { useAuthStore } from '../../shared/lib/store';
-
-const loginSchema = z.object({
-  email: z.email('Неверный email'),
-  password: z.string().min(6, 'Пароль должен содержать минимум 6 символов'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+import { loginSchema, type LoginFormData } from '../../shared/validation';
 
 interface LoginFormProps {
   onSuccess?: () => void;

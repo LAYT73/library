@@ -5,6 +5,7 @@ import { getServerPagination } from '../../shared/lib/pagination';
 import { useKnowledgeAreas, useCreateKnowledgeArea, useUpdateKnowledgeArea, useDeleteKnowledgeArea } from '../../entities/knowledgeArea/api';
 import { useListQueryState } from '../../shared/hooks/useListQueryState';
 import { TableToolbar } from '../../shared/ui/TableToolbar';
+import { rules } from '../../shared/validation';
 
 export const KnowledgeAreasPage: React.FC = () => {
   const list = useListQueryState();
@@ -46,16 +47,16 @@ export const KnowledgeAreasPage: React.FC = () => {
 
         <Modal title="Создать область" open={open} onCancel={() => setOpen(false)} onOk={async () => { try { const values = await form.validateFields(); await create.mutateAsync(values); message.success('Создано'); form.resetFields(); setOpen(false); } catch { message.error('Не удалось создать'); } }}>
           <Form form={form} layout="vertical">
-            <Form.Item name="name" label="Название" rules={[{ required: true }]}>
-              <Input placeholder="Например: Математика" />
+            <Form.Item name="name" label="Название" rules={rules.knowledgeAreaName()}>
+              <Input placeholder="Например: Математика" maxLength={100} showCount />
             </Form.Item>
           </Form>
         </Modal>
 
         <Modal title="Изменить область" open={editOpen} onCancel={() => { setEditOpen(false); setEditing(null); }} onOk={async () => { try { const values = await editForm.validateFields(); if (!editing) return; await update.mutateAsync({ id: editing.id, payload: values }); message.success('Обновлено'); setEditOpen(false); setEditing(null); } catch { message.error('Не удалось обновить'); } }}>
           <Form form={editForm} layout="vertical">
-            <Form.Item name="name" label="Название" rules={[{ required: true }]}>
-              <Input placeholder="Например: Математика" />
+            <Form.Item name="name" label="Название" rules={rules.knowledgeAreaName()}>
+              <Input placeholder="Например: Математика" maxLength={100} showCount />
             </Form.Item>
           </Form>
         </Modal>

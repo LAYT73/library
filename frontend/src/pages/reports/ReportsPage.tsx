@@ -5,6 +5,7 @@ import { FileExcelOutlined, FileTextOutlined, UploadOutlined } from '@ant-design
 import { downloadFundReport, downloadCoverageReport, importFundCsv } from '../../entities/report/api';
 import { useDisciplines } from '../../entities/discipline/api';
 import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
+import { rules } from '../../shared/validation';
 
 const { Title, Paragraph } = Typography;
 
@@ -94,7 +95,7 @@ export const ReportsPage: React.FC = () => {
               <Form.Item
                 name="disciplineId"
                 label="Дисциплина"
-                rules={[{ required: true, message: 'Выберите дисциплину' }]}
+                rules={rules.selectRequired('Выберите дисциплину')}
               >
                 <Select
                   showSearch
@@ -125,7 +126,7 @@ export const ReportsPage: React.FC = () => {
               <Form.Item
                 name="csv"
                 label="Содержимое CSV"
-                rules={[{ required: true, message: 'Вставьте CSV' }]}
+                rules={rules.csvRequired()}
               >
                 <Input.TextArea rows={8} placeholder="inventoryNumber,status,bookId,isbn,title,acquisitionId&#10;1001,AVAILABLE,1,..." />
               </Form.Item>

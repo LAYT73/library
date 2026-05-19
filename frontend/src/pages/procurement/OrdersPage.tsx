@@ -9,6 +9,7 @@ import { useOrders, useCreateOrderFromRequest, useUpdateOrder, useDeleteOrder } 
 import { usePurchaseRequests } from '../../entities/purchaseRequest/api';
 import { useSuppliers } from '../../entities/supplier/api';
 import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
+import { rules } from '../../shared/validation';
 
 const statusLabels: Record<string, string> = {
   CREATED: 'Создан',
@@ -182,14 +183,14 @@ export const OrdersPage: React.FC = () => {
 
       <Modal title="Создать заказ из заявки" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={submitCreate} okText="Создать" cancelText="Отмена">
         <Form form={form} layout="vertical">
-          <Form.Item name="requestId" label="Заявка" rules={[{ required: true }]}>
+          <Form.Item name="requestId" label="Заявка" rules={rules.selectRequired('Выберите заявку')}>
             <Select placeholder="Выберите заявку">
               {requestsData?.data?.map((r) => (
                 <Select.Option key={r.id} value={r.id}>Заявка #{r.id} — {r.status}</Select.Option>
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="supplierId" label="Поставщик" rules={[{ required: true }]}>
+          <Form.Item name="supplierId" label="Поставщик" rules={rules.selectRequired('Выберите поставщика')}>
             <Select placeholder="Выберите поставщика">
               {suppliersData?.data?.map((s) => (
                 <Select.Option key={s.id} value={s.id}>{s.name} (#{s.id})</Select.Option>
@@ -204,7 +205,7 @@ export const OrdersPage: React.FC = () => {
 
       <Modal title="Изменить заказ" open={editOpen} onCancel={() => setEditOpen(false)} onOk={submitEdit} okText="Сохранить" cancelText="Отмена">
         <Form form={form} layout="vertical">
-          <Form.Item name="status" label="Статус" rules={[{ required: true }]}>
+          <Form.Item name="status" label="Статус" rules={rules.selectRequired('Выберите статус')}>
             <Select
               options={[
                 { value: 'CREATED', label: 'Создан' },

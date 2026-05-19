@@ -14,6 +14,7 @@ import {
 import { useBooks } from '../../shared/hooks/useBooks';
 import { formatDateTimeRu } from '../../shared/lib/formatters';
 import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
+import { rules, maskPersonName } from '../../shared/validation';
 
 export const DonationsPage: React.FC = () => {
   const list = useListQueryState();
@@ -161,23 +162,28 @@ export const DonationsPage: React.FC = () => {
 
       <Modal title="Создать пожертвование" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={submitCreate} okText="Создать" cancelText="Отмена" width={640}>
         <Form form={form} layout="vertical">
-          <Form.Item name="donorName" label="Имя донора" rules={[{ required: true }]}>
-            <Input placeholder="Например: Иванов Иван" />
+          <Form.Item name="donorName" label="Имя донора" rules={rules.donorName()}>
+            <Input
+              placeholder="Иванов Иван"
+              maxLength={200}
+              showCount
+              onChange={(e) => form.setFieldValue('donorName', maskPersonName(e.target.value))}
+            />
           </Form.Item>
           <Form.List name="items" initialValue={[{}]}>
             {(fields, { add, remove }) => (
               <div>
                 {fields.map((field) => (
                   <Space key={field.key} align="start" style={{ display: 'flex', marginBottom: 8 }}>
-                    <Form.Item name={[field.name, 'bookId']} rules={[{ required: true }]} label={field.name === 0 ? 'Книга' : undefined}>
+                    <Form.Item name={[field.name, 'bookId']} rules={rules.selectRequired('Выберите книгу')} label={field.name === 0 ? 'Книга' : undefined}>
                       <Select
                         style={{ width: 280 }}
                         placeholder="Выберите книгу"
                         options={booksData?.data?.map((b) => ({ value: b.id, label: b.title }))}
                       />
                     </Form.Item>
-                    <Form.Item name={[field.name, 'quantity']} rules={[{ required: true }]} label={field.name === 0 ? 'Кол-во' : undefined}>
-                      <InputNumber min={1} placeholder="Кол-во" />
+                    <Form.Item name={[field.name, 'quantity']} rules={rules.positiveInt('Количество')} label={field.name === 0 ? 'Кол-во' : undefined}>
+                      <InputNumber min={1} precision={0} placeholder="1" />
                     </Form.Item>
                     {fields.length > 1 && <Button onClick={() => remove(field.name)} style={{ marginTop: field.name === 0 ? 30 : 0 }}>Удалить</Button>}
                   </Space>
@@ -193,8 +199,8 @@ export const DonationsPage: React.FC = () => {
 
       <Modal title="Изменить пожертвование" open={editOpen} onCancel={() => setEditOpen(false)} onOk={submitEdit} okText="Сохранить" cancelText="Отмена">
         <Form form={form} layout="vertical">
-          <Form.Item name="donorName" label="Имя донора" rules={[{ required: true }]}>
-            <Input />
+          <Form.Item name="donorName" label="Имя донора" rules={rules.donorName()}>
+            <Input maxLength={200} showCount onChange={(e) => form.setFieldValue('donorName', maskPersonName(e.target.value))} />
           </Form.Item>
         </Form>
       </Modal>

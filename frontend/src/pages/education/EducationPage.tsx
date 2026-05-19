@@ -48,6 +48,7 @@ import { TableToolbar } from '../../shared/ui/TableToolbar';
 import { useAuthStore } from '../../shared/lib/store';
 import { getServerPagination } from '../../shared/lib/pagination';
 import { UserRole } from '../../shared/types';
+import { rules, maskGroupName } from '../../shared/validation';
 
 export const EducationPage: React.FC = () => {
   const { hasRole } = useAuthStore();
@@ -125,8 +126,8 @@ const DisciplinesTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
         } catch { message.error('Ошибка'); }
       }}>
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Название" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="department" label="Кафедра" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="name" label="Название" rules={rules.disciplineName()}><Input maxLength={200} showCount /></Form.Item>
+          <Form.Item name="department" label="Кафедра" rules={rules.department()}><Input maxLength={300} showCount /></Form.Item>
         </Form>
       </Modal>
 
@@ -141,8 +142,8 @@ const DisciplinesTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
         } catch { message.error('Ошибка'); }
       }}>
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Название" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="department" label="Кафедра" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="name" label="Название" rules={rules.disciplineName()}><Input maxLength={200} showCount /></Form.Item>
+          <Form.Item name="department" label="Кафедра" rules={rules.department()}><Input maxLength={300} showCount /></Form.Item>
         </Form>
       </Modal>
     </>
@@ -192,8 +193,10 @@ const GroupsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
         try { const v = await form.validateFields(); await create.mutateAsync(v); message.success('Создано'); form.resetFields(); setOpen(false); } catch { message.error('Ошибка'); }
       }}>
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Название" rules={[{ required: true }]}><Input placeholder="ИВТ-21" /></Form.Item>
-          <Form.Item name="studentCount" label="Число студентов" rules={[{ required: true }]}><InputNumber min={1} style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="name" label="Название" rules={rules.groupName()}>
+            <Input placeholder="ИВТ-21" maxLength={40} onChange={(e) => form.setFieldValue('name', maskGroupName(e.target.value))} />
+          </Form.Item>
+          <Form.Item name="studentCount" label="Число студентов" rules={rules.studentCount()}><InputNumber min={0} precision={0} style={{ width: '100%' }} /></Form.Item>
         </Form>
       </Modal>
 
@@ -202,8 +205,10 @@ const GroupsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
         try { const v = await form.validateFields(); await update.mutateAsync({ id: editing.id, payload: v }); message.success('Обновлено'); setEditOpen(false); setEditing(null); } catch { message.error('Ошибка'); }
       }}>
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Название" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="studentCount" label="Число студентов" rules={[{ required: true }]}><InputNumber min={1} style={{ width: '100%' }} /></Form.Item>
+          <Form.Item name="name" label="Название" rules={rules.groupName()}>
+            <Input maxLength={40} onChange={(e) => form.setFieldValue('name', maskGroupName(e.target.value))} />
+          </Form.Item>
+          <Form.Item name="studentCount" label="Число студентов" rules={rules.studentCount()}><InputNumber min={0} precision={0} style={{ width: '100%' }} /></Form.Item>
         </Form>
       </Modal>
     </>
@@ -250,10 +255,10 @@ const AssignmentsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
         try { const v = await form.validateFields(); await create.mutateAsync(v); message.success('Назначено'); form.resetFields(); setOpen(false); } catch { message.error('Ошибка'); }
       }}>
         <Form form={form} layout="vertical">
-          <Form.Item name="disciplineId" label="Дисциплина" rules={[{ required: true }]}>
+          <Form.Item name="disciplineId" label="Дисциплина" rules={rules.selectRequired('Выберите дисциплину')}>
             <Select placeholder="Выберите дисциплину" options={disciplines?.data?.map((d) => ({ value: d.id, label: `${d.name} (${d.department})` }))} />
           </Form.Item>
-          <Form.Item name="studentGroupId" label="Группа" rules={[{ required: true }]}>
+          <Form.Item name="studentGroupId" label="Группа" rules={rules.selectRequired('Выберите группу')}>
             <Select placeholder="Выберите группу" options={groups?.data?.map((g) => ({ value: g.id, label: `${g.name} — ${g.studentCount} чел.` }))} />
           </Form.Item>
         </Form>
@@ -309,9 +314,14 @@ const CoverageRequirementsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) =>
             render: (_: unknown, record: CoverageWithRelations) => (
               <Space>
                 <Button size="small" onClick={async () => {
-                  const count = prompt('Новое требуемое количество:', String(record.requiredCount));
-                  if (!count) return;
-                  try { await update.mutateAsync({ id: record.id, requiredCount: Number(count) }); message.success('Обновлено'); } catch { message.error('Ошибка'); }
+                  const count = prompt('Новое требуемое количество (целое ≥ 1):', String(record.requiredCount));
+                  if (count == null || count.trim() === '') return;
+                  const n = Number(count);
+                  if (!Number.isInteger(n) || n < 1) {
+                    message.error('Введите целое число не меньше 1');
+                    return;
+                  }
+                  try { await update.mutateAsync({ id: record.id, requiredCount: n }); message.success('Обновлено'); } catch { message.error('Ошибка'); }
                 }}>Изменить</Button>
                 <Popconfirm title="Удалить?" onConfirm={async () => { try { await remove.mutateAsync(record.id); message.success('Удалено'); } catch { message.error('Ошибка'); } }}>
                   <Button danger size="small">Удалить</Button>
@@ -326,14 +336,14 @@ const CoverageRequirementsTab: React.FC<{ canEdit: boolean }> = ({ canEdit }) =>
         try { const v = await form.validateFields(); await create.mutateAsync(v); message.success('Создано'); form.resetFields(); setOpen(false); } catch { message.error('Ошибка'); }
       }}>
         <Form form={form} layout="vertical">
-          <Form.Item name="disciplineId" label="Дисциплина" rules={[{ required: true }]}>
+          <Form.Item name="disciplineId" label="Дисциплина" rules={rules.selectRequired('Выберите дисциплину')}>
             <Select options={disciplines?.data?.map((d) => ({ value: d.id, label: d.name }))} />
           </Form.Item>
-          <Form.Item name="bookId" label="Книга" rules={[{ required: true }]}>
+          <Form.Item name="bookId" label="Книга" rules={rules.selectRequired('Выберите книгу')}>
             <Select showSearch optionFilterProp="label" options={books?.data?.map((b) => ({ value: b.id, label: b.title }))} />
           </Form.Item>
-          <Form.Item name="requiredCount" label="Требуется экземпляров" rules={[{ required: true }]}>
-            <InputNumber min={1} style={{ width: '100%' }} />
+          <Form.Item name="requiredCount" label="Требуется экземпляров" rules={rules.positiveInt('Количество')}>
+            <InputNumber min={1} precision={0} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

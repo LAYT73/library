@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useListQueryState } from '../../shared/hooks/useListQueryState';
 import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
 import { TableToolbar } from '../../shared/ui/TableToolbar';
+import { rules, maskIsbn } from '../../shared/validation';
 
 export const CatalogPage: React.FC = () => {
   const list = useListQueryState<{ authorId?: number; year?: number }>();
@@ -105,19 +106,23 @@ export const CatalogPage: React.FC = () => {
         }}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="isbn" label="ISBN" rules={[{ required: true }]}>
-            <Input placeholder="Например: 978-5-907123-45-6" />
+          <Form.Item name="isbn" label="ISBN" rules={rules.isbn()}>
+            <Input
+              placeholder="978-5-907123-45-6"
+              maxLength={17}
+              onChange={(e) => form.setFieldValue('isbn', maskIsbn(e.target.value))}
+            />
           </Form.Item>
-          <Form.Item name="title" label="Название" rules={[{ required: true }]}>
-            <Input placeholder="Например: Введение в алгоритмы" />
+          <Form.Item name="title" label="Название" rules={rules.bookTitle()}>
+            <Input placeholder="Например: Введение в алгоритмы" maxLength={200} showCount />
           </Form.Item>
-          <Form.Item name="publisher" label="Издатель" rules={[{ required: true }]}>
-            <Input placeholder="Например: O'Reilly" />
+          <Form.Item name="publisher" label="Издатель" rules={rules.publisher()}>
+            <Input placeholder="Например: O'Reilly" maxLength={300} showCount />
           </Form.Item>
-          <Form.Item name="year" label="Год" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} placeholder="Например: 2020" />
+          <Form.Item name="year" label="Год" rules={rules.year()}>
+            <InputNumber style={{ width: '100%' }} placeholder="2020" min={1000} max={new Date().getFullYear() + 1} precision={0} />
           </Form.Item>
-          <Form.Item name="authorId" label="Автор" rules={[{ required: true }]}>
+          <Form.Item name="authorId" label="Автор" rules={rules.selectRequired('Выберите автора')}>
             <Select placeholder="Выберите автора">
               {authorsData?.data?.map((a) => (
                 <Select.Option key={a.id} value={a.id}>

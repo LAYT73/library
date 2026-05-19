@@ -2,18 +2,10 @@ import React from 'react';
 import { Form, Button, message } from 'antd';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Input, PasswordInput } from '../../shared/ui/Input';
 import { useRegister } from '../../shared/hooks/useAuth';
 import { useAuthStore } from '../../shared/lib/store';
-
-const registerSchema = z.object({
-  email: z.string().email('Неверный email'),
-  password: z.string().min(6, 'Пароль должен содержать минимум 6 символов'),
-  fullName: z.string().min(2, 'Имя и фамилия должны содержать минимум 2 символа'),
-});
-
-type RegisterFormData = z.infer<typeof registerSchema>;
+import { registerSchema, type RegisterFormData, maskPersonName } from '../../shared/validation';
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -68,7 +60,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
             validateStatus={fieldState.error ? 'error' : ''}
             help={fieldState.error?.message}
           >
-            <Input {...field} placeholder="Введите ФИО" />
+            <Input
+              {...field}
+              placeholder="Введите ФИО"
+              onChange={(e) => field.onChange(maskPersonName(e.target.value))}
+            />
           </Form.Item>
         )}
       />

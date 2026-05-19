@@ -9,6 +9,7 @@ import { useListQueryState } from '../../shared/hooks/useListQueryState';
 import { DROPDOWN_LIST_PARAMS } from '../../shared/types/list';
 import { TableToolbar } from '../../shared/ui/TableToolbar';
 import type { Copy } from '../../shared/types';
+import { rules } from '../../shared/validation';
 
 const copyStatusOptions = [
   { value: 'AVAILABLE', label: 'Доступен' },
@@ -87,10 +88,10 @@ export const CopiesPage: React.FC = () => {
         }
       }}>
         <Form form={form} layout="vertical">
-          <Form.Item name="inventoryNumber" label="Инвентарный номер" rules={[{ required: true }]}> 
-            <InputNumber style={{ width: '100%' }} placeholder="Например: 1001" />
+          <Form.Item name="inventoryNumber" label="Инвентарный номер" rules={rules.inventoryNumber()}>
+            <InputNumber style={{ width: '100%' }} placeholder="1001" min={1} precision={0} />
           </Form.Item>
-          <Form.Item name="bookId" label="Книга" rules={[{ required: true }]}>
+          <Form.Item name="bookId" label="Книга" rules={rules.selectRequired('Выберите книгу')}>
             <Select placeholder="Выберите книгу">
               {booksData?.data?.map((b: any) => (<Select.Option key={b.id} value={b.id}>{b.title} (#{b.id})</Select.Option>))}
             </Select>
